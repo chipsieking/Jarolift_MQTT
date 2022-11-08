@@ -15,6 +15,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "Schedules.h"
+Schedules* ScheduleList;
+
+void SetSchedulerPointer(Schedules *scheduleListPointer){
+  ScheduleList = scheduleListPointer;
+}
+
 //####################################################################
 // API call to get data or execute commands via WebIf
 //####################################################################
@@ -175,6 +182,43 @@ void html_api() {
           String status_text = "Updating channel description to '" + channel_name + "'.";
           server.send ( 200, "text/plain", status_text );
         }
+      }
+      else if (cmd == "get scheduler") {
+        String response_text;
+        for ( uint8_t i = 0; i < ScheduleList->length(); i++) {
+          if (ScheduleList->Items[i].schedule != i)
+            break;
+          response_text.concat(ScheduleList->Items[i].toString() + "\n");          
+        }
+        server.send ( 200, "text/plain", response_text );
+      }
+      else if (cmd == "set scheduler") {
+        ScheduleList->Clear();
+        File myFile = SPIFFS.open("/schedules.txt", "w");  
+        for ( uint8_t i = 1; i < server.args(); i += 5 ) {
+          uint8_t schedule;
+          uint8_t weekdays;
+          String timeText;
+          String typeText;
+          uint8_t channels;
+          if (server.argName(i) == "plain") break;
+          if (server.argName(i) == "schedule") schedule = server.arg(i).toInt();
+          if (server.argName(i + 1) == "weekday") weekdays = server.arg(i + 1).toInt();
+          if (server.argName(i + 2) == "time") timeText = urldecode(server.arg(i + 2));
+          if (server.argName(i + 3) == "type") typeText = urldecode(server.arg(i + 3));
+          if (server.argName(i + 4) == "channel") channels = server.arg(i + 4).toInt();
+          ScheduleList->Items[schedule].schedule = schedule;
+          ScheduleList->Items[schedule].weekdays = weekdays;
+          ScheduleList->Items[schedule].timeText = timeText;
+          ScheduleList->Items[schedule].typeText = typeText;
+          ScheduleList->Items[schedule].channels = channels;          
+          //Serial.println(ScheduleList->Items[schedule].toString());
+          myFile.println(ScheduleList->Items[schedule].toString());
+        }
+        ScheduleList->isUpdated = true;
+        myFile.close();
+        server.send ( 200, "text/plain", "OK" );
+        WriteLog("[INFO] - Schedules stored.", true);
       } else {
 
         web_cmd_channel = channel;

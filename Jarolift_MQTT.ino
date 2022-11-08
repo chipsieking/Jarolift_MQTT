@@ -38,6 +38,11 @@
   15      15           1000 0000                   0000 0000           0000 0111
 */
 
+//Board:
+//NodeMCU 1.0 (ESP-12E Module)
+//MasterMSB 0x27193A9B
+//MasterLSB 0x117C0835
+//channel serial number prefix 0x032a20
 
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
@@ -119,6 +124,11 @@ CC1101 cc1101;                            // The connection to the hardware chip
 // forward declarations
 void ICACHE_RAM_ATTR radio_rx_measure();
 
+//Over the Air Update
+#include <ArduinoOTA.h>
+bool UploadIsOTA = false;
+const char deviceNameShort[] = "JaroliftESP8266";
+
 //####################################################################
 // sketch initialization routine
 //####################################################################
@@ -191,6 +201,7 @@ void setup()
 
   // configure webserver and start it
   server.on ( "/api", html_api );                       // command api
+  server.on("/upload", HTTP_POST, handle_upload_finish, handle_upload);
   SPIFFS.begin();                                       // Start the SPI flash filesystem
   server.onNotFound([]() {                              // If the client requests any URI
     if (!handleFileRead(server.uri())) {                // send it if it exists
@@ -216,6 +227,8 @@ void setup()
   pinMode(RX_PORT, INPUT_PULLUP);
   attachInterrupt(RX_PORT, radio_rx_measure, CHANGE); // Interrupt on change of RX_PORT
 
+  InitSchedules();
+  SetupOTA();
 } // void setup
 
 //####################################################################
@@ -379,6 +392,9 @@ void loop()
     }
     web_cmd = "";
   }
+
+  SchedulerLoop();
+  OTA_Handle();
 } // void loop
 
 

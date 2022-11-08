@@ -7,6 +7,7 @@
     <!-- Styles -->
     <link rel="stylesheet" type="text/css" href="style.css">
     <script src="scripts.js"></script>
+	<script src="upload.js"></script>
     <link rel="shortcut icon" type="image/x-icon" href="favicon.png">
   </head>
   <body>  
@@ -19,6 +20,7 @@
           <a class="siimple-navbar-link" href="/">Home</a>
           <a class="siimple-navbar-link" href="/system.html">System</a>
           <a class="siimple-navbar-link" href="/shutter.html">Shutter</a>
+		  <a class="siimple-navbar-link" href="timer.html">Timer</a>
           <a class="siimple-navbar-link" href="/log.html">Log</a>
         </div>
       </div>
@@ -88,7 +90,24 @@ cover:
     payload_available: &quot;Online&quot;
     payload_not_available: &quot;Offline&quot;
         </pre>
-
-      </div>
+	
+	<div class="modal-content">
+		<form action="upload" method="post" enctype="multipart/form-data" id="UploadForm">
+			<div class="upload-btn-wrapper">
+				<button type="submit">Upload</button>
+				<input type="file" name="myfile" id="uploadFile" onchange="Upload()" title="Upload/Update" />
+			</div>
+		</form>
+	  </div>
+	  <div class="dimmer">
+			<div class="centered">
+				<div id="fileName"></div>
+				<div id="fileSize"></div>
+				<div id="fileType"></div>
+				<progress id="progress" style="margin-top:10px"></progress>
+			</div>
+		</div>
+	
+      </div>	  
     </div>
   </body>

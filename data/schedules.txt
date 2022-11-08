@@ -1,0 +1,8 @@
+schedule=0&weekday=31&time=07:00&type=up&channel=23
+schedule=1&weekday=31&time=21:00&type=down&channel=23
+schedule=2&weekday=31&time=07:00&type=up&channel=224
+schedule=3&weekday=31&time=20:00&type=down&channel=224
+schedule=4&weekday=96&time=08:30&type=up&channel=23
+schedule=5&weekday=96&time=21:00&type=down&channel=23
+schedule=6&weekday=96&time=09:00&type=up&channel=224
+schedule=7&weekday=96&time=21:00&type=down&channel=224
