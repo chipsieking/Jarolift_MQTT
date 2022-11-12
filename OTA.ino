@@ -39,6 +39,7 @@ void handle_update(HTTPUpload& upload) {
   //HTTPUpload& upload = server.upload();
   if (upload.status == UPLOAD_FILE_START) {
     WriteLog("[OTA] - Upload: " + String(upload.filename.c_str()), true);
+    SPIFFS.end();
     if (!Update.begin(0XFFFFFFFF)) { //start with max available size
       Update.printError(Serial);
     }
@@ -57,8 +58,9 @@ void handle_update(HTTPUpload& upload) {
   }
 }
 
-void handle_update_finish() {
-  uint16_t refreshdelay = 1000;
+void handle_update_finish() {  
+  SPIFFS.begin();
+  uint16_t refreshdelay = 1500;
   WriteLog("[OTA] - Update finish", true);
   server.sendHeader("Connection", "close");
   String response = "<html><head><title>OTA</title><meta http-equiv='refresh' content='" + String(refreshdelay / 100) + "; URL=/' /><script>";
@@ -71,7 +73,7 @@ void handle_update_finish() {
   else
     server.send(200, "text/html", response);
   delay(refreshdelay);
-  ESP.restart();
+  ESP.restart();  
 }
 
 File fsUploadFile;

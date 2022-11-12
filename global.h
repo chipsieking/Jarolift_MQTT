@@ -355,8 +355,8 @@ void InitializeConfigData()
   {
     // DEFAULT CONFIG
     config.cfgVersion = 2;
-    config.ssid = "MYSSID";
-    config.password = "MYPASSWORD";
+    config.ssid = "Schlumpfhausen";
+    config.password = "98186372993139837983";
     config.dhcp = true;
     config.ip[0] = 192; config.ip[1] = 168; config.ip[2] = 1; config.ip[3] = 100;
     config.netmask[0] = 255; config.netmask[1] = 255; config.netmask[2] = 255; config.netmask[3] = 0;
@@ -366,8 +366,8 @@ void InitializeConfigData()
     config.mqtt_broker_client_id = "JaroliftDongle";
     config.mqtt_broker_client_id += chipIdString;
     config.mqtt_devicetopic = "jarolift";
-    config.master_msb = "0x12345678";
-    config.master_lsb = "0x12345678";
+    config.master_msb = "0x27193A9B";
+    config.master_lsb = "0x117C0835";
     config.learn_mode = true;
     config.serial = "12345600";
     for ( int i = 0; i <= 15; i++ ) {
@@ -422,7 +422,7 @@ void HeartBeat()
     tkHeartBeat.attach(pulse_off, HeartBeat);
 
   highPulse = !highPulse;
-  digitalWrite(led_pin, highPulse);              // toogle LED
+  //digitalWrite(led_pin, highPulse);              // toogle LED
 } // void HeartBeat
 
 #endif

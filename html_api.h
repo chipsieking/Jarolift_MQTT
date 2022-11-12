@@ -194,7 +194,7 @@ void html_api() {
       }
       else if (cmd == "set scheduler") {
         ScheduleList->Clear();
-        File myFile = SPIFFS.open("/schedules.txt", "w");  
+        File myFile = SPIFFS.open(ScheduleList->FileName, "w");  
         for ( uint8_t i = 1; i < server.args(); i += 5 ) {
           uint8_t schedule;
           uint8_t weekdays;

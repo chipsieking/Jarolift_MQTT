@@ -38,11 +38,10 @@
   15      15           1000 0000                   0000 0000           0000 0111
 */
 
+#define DEVICE 0
+
 //Board:
 //NodeMCU 1.0 (ESP-12E Module)
-//MasterMSB 0x27193A9B
-//MasterLSB 0x117C0835
-//channel serial number prefix 0x032a20
 
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
@@ -127,8 +126,11 @@ void ICACHE_RAM_ATTR radio_rx_measure();
 //Over the Air Update
 #include <ArduinoOTA.h>
 bool UploadIsOTA = false;
+#if DEVICE
+const char deviceNameShort[] = "JaroliftESP8266-2";
+#else
 const char deviceNameShort[] = "JaroliftESP8266";
-
+#endif
 //####################################################################
 // sketch initialization routine
 //####################################################################

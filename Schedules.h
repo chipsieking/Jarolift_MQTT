@@ -83,6 +83,7 @@ class Schedules {
   public:
     Schedule Items[NoOfItems];
     bool isUpdated = false;
+    String FileName = "/schedules.txt";
     void Print() {
       for ( uint8_t i = 0; i < NoOfItems; i++) {
         if (Items[i].schedule != i)
