@@ -7,7 +7,7 @@ String nextTime;
 void InitSchedules() {
   int line = 0;
   int index = 0;
-  if(DEVICE)
+  if (DEVICE)
     Schedules.FileName = "/schedules2.txt";
   else
     Schedules.FileName = "/schedules.txt";
@@ -32,6 +32,8 @@ void SchedulerLoop() {
   time_t now = dstAdjusted.time(&dstAbbrev);
   struct tm * timeinfo = localtime(&now);
   uint8_t weekday = timeinfo->tm_wday - 1; //start by 0 // days since Sunday 0-6
+  if(weekday > 6)
+    weekday = 6;
   uint8_t hour = timeinfo->tm_hour;
   uint8_t minute = timeinfo->tm_min;
 
@@ -77,9 +79,6 @@ void ExecuteSchedule(uint8_t weekday, uint8_t hour, uint8_t minute) {
   long startTime = millis();
   digitalWrite(led_pin, LOW);
 
-  detachInterrupt(RX_PORT); // Interrupt on change of RX_PORT
-  delay(1);
-
   for ( uint8_t i = 0; i < Schedules.length(); i++) {
     if (Schedules.Items[i].schedule != i)
       break;
@@ -94,21 +93,16 @@ void ExecuteSchedule(uint8_t weekday, uint8_t hour, uint8_t minute) {
 
     for ( uint8_t c = 0; c < channelCount; c++) {
       SendCommand(channels[c], Schedules.Items[i].typeText);
-      //delay(100);
-      cc1101.cmdStrobe(CC1101_SCAL);
-      delay(50);
     }
   }
-
-  enterrx();
-  delay(200);
-  attachInterrupt(RX_PORT, radio_rx_measure, CHANGE);
-
   digitalWrite(led_pin, HIGH);
   WriteLog("[INFO] - Schedule Executed. Runtime: " + String(millis() - startTime) + "ms" , true);
 }
 
 void SendCommand(uint8_t channel, String cmd) {
+  detachInterrupt(RX_PORT); // Interrupt on change of RX_PORT
+  delay(1);
+
   if (cmd == "up")
     cmd_up(channel);
   else if (cmd == "down")
@@ -117,4 +111,11 @@ void SendCommand(uint8_t channel, String cmd) {
     cmd_stop(channel);
   else if (cmd == "shade")
     cmd_shade(channel);
+
+  cc1101.cmdStrobe(CC1101_SCAL);
+  delay(50);
+  enterrx();
+  delay(200);
+  attachInterrupt(RX_PORT, radio_rx_measure, CHANGE); // Interrupt on change of RX_PORT
+  delay(50);
 }
