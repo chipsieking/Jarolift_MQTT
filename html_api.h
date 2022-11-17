@@ -196,11 +196,11 @@ void html_api() {
         ScheduleList->Clear();
         File myFile = SPIFFS.open(ScheduleList->FileName, "w");  
         for ( uint8_t i = 1; i < server.args(); i += 5 ) {
-          uint8_t schedule;
-          uint8_t weekdays;
-          String timeText;
-          String typeText;
-          uint8_t channels;
+          uint8_t schedule = 0;
+          uint8_t weekdays = 0;
+          String timeText = "00:00";
+          String typeText = "";
+          uint8_t channels = 0;
           if (server.argName(i) == "plain") break;
           if (server.argName(i) == "schedule") schedule = server.arg(i).toInt();
           if (server.argName(i + 1) == "weekday") weekdays = server.arg(i + 1).toInt();

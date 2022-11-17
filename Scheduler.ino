@@ -5,7 +5,6 @@ String lastTime;
 String nextTime;
 
 void InitSchedules() {
-  int line = 0;
   int index = 0;
   if (DEVICE)
     Schedules.FileName = "/schedules2.txt";
@@ -36,13 +35,6 @@ void SchedulerLoop() {
     weekday = 6;
   uint8_t hour = timeinfo->tm_hour;
   uint8_t minute = timeinfo->tm_min;
-
-  //  Serial.print("SchdeuleLoop: ");
-  //  Serial.print(weekday);
-  //  Serial.print(" ");
-  //  Serial.print(hour);
-  //  Serial.print(":");
-  //  Serial.println(minute);
 
   if (Schedules.isUpdated) {
     Schedules.isUpdated = false;
@@ -91,9 +83,8 @@ void ExecuteSchedule(uint8_t weekday, uint8_t hour, uint8_t minute) {
     uint8_t channels[16];
     uint8_t channelCount = Schedules.Items[i].getChannels(channels);
 
-    for ( uint8_t c = 0; c < channelCount; c++) {
+    for ( uint8_t c = 0; c < channelCount; c++)
       SendCommand(channels[c], Schedules.Items[i].typeText);
-    }
   }
   digitalWrite(led_pin, HIGH);
   WriteLog("[INFO] - Schedule Executed. Runtime: " + String(millis() - startTime) + "ms" , true);
@@ -101,7 +92,7 @@ void ExecuteSchedule(uint8_t weekday, uint8_t hour, uint8_t minute) {
 
 void SendCommand(uint8_t channel, String cmd) {
   detachInterrupt(RX_PORT); // Interrupt on change of RX_PORT
-  delay(1);
+  delay(5);
 
   if (cmd == "up")
     cmd_up(channel);
@@ -113,9 +104,18 @@ void SendCommand(uint8_t channel, String cmd) {
     cmd_shade(channel);
 
   cc1101.cmdStrobe(CC1101_SCAL);
+//  delay(50);
+//  enterrx();
+//  delay(200);
+//  attachInterrupt(RX_PORT, radio_rx_measure, CHANGE); // Interrupt on change of RX_PORT
+//  delay(50);
+//  CheckRxBuffer();
   delay(50);
   enterrx();
   delay(200);
   attachInterrupt(RX_PORT, radio_rx_measure, CHANGE); // Interrupt on change of RX_PORT
-  delay(50);
+  delay(200);
+  CheckRxBuffer();
+  delay(500);
+  iset = false;
 }
