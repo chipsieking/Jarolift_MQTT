@@ -99,6 +99,19 @@ struct strConfig {
   boolean set_devicecounter = false;
 } config;
 
+// API for sending shutter commands
+enum ShutterCmd {
+  CMD_IDLE,
+  CMD_UP,
+  CMD_DOWN,
+  CMD_STOP,
+  CMD_SETSHADE,
+  CMD_SHADE,
+  CMD_LEARN,
+  CMD_UPDOWN,
+};
+void sendCmd(ShutterCmd cmd, unsigned channel);
+ShutterCmd string2ShutterCmd(const char* str);
 
 //####################################################################
 // Initalize log message array with empty strings

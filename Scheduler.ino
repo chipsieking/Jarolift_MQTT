@@ -85,38 +85,8 @@ void ExecuteSchedule(uint8_t weekday, uint8_t hour, uint8_t minute) {
     uint8_t channelCount = scheduler.Items[i].getChannels(channels);
 
     for ( uint8_t c = 0; c < channelCount; c++)
-      SendCommand(channels[c], scheduler.Items[i].typeText);
+      sendCmd(string2ShutterCmd(scheduler.Items[i].typeText.c_str()), channels[c]);
   }
   digitalWrite(led_pin, HIGH);
   WriteLog("[INFO] - Schedule Executed. Runtime: " + String(millis() - startTime) + "ms" , true);
-}
-
-void SendCommand(uint8_t channel, String cmd) {
-  detachInterrupt(RX_PORT); // Interrupt on change of RX_PORT
-  delay(5);
-
-  if (cmd == "up")
-    cmd_up(channel);
-  else if (cmd == "down")
-    cmd_down(channel);
-  else if (cmd == "stop")
-    cmd_stop(channel);
-  else if (cmd == "shade")
-    cmd_shade(channel);
-
-  cc1101.cmdStrobe(CC1101_SCAL);
-//  delay(50);
-//  enterrx();
-//  delay(200);
-//  attachInterrupt(RX_PORT, radio_rx_measure, CHANGE); // Interrupt on change of RX_PORT
-//  delay(50);
-//  CheckRxBuffer();
-  delay(50);
-  enterrx();
-  delay(200);
-  attachInterrupt(RX_PORT, radio_rx_measure, CHANGE); // Interrupt on change of RX_PORT
-  delay(200);
-  CheckRxBuffer();
-  delay(500);
-  iset = false;
 }

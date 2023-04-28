@@ -98,32 +98,16 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
 
   // convert payload in string
   payload[length] = '\0';
-  String cmd = String((char*)payload);
+  String cmdStr = String((char*)payload);
 
   // print serial message
-  WriteLog("[INFO] - incoming MQTT command: channel " + (String) channel + ":", false);
-  WriteLog(cmd, true);
+  WriteLog("[INFO] - incoming MQTT command: channel " + (String)channel + ":", false);
+  WriteLog(cmdStr, true);
 
   if (channel < MAX_CHANNELS) {
-
-    iset = true;
-    detachInterrupt(RX_PORT); // Interrupt @Inputpin
-    delay(1);
-
-    if (cmd == "UP" || cmd == "0") {
-      cmd_up(channel);
-    } else if (cmd == "DOWN"  || cmd == "100") {
-      cmd_down(channel);
-    } else if (cmd == "STOP") {
-      cmd_stop(channel);
-    } else if (cmd == "SETSHADE") {
-      cmd_set_shade_position(channel);
-    } else if (cmd == "SHADE" || cmd == "90") {
-      cmd_shade(channel);
-    } else if (cmd == "LEARN") {
-      cmd_learn(channel);
-    } else if (cmd == "UPDOWN") {
-      cmd_updown(channel);
+    ShutterCmd cmd = string2ShutterCmd(cmdStr.c_str());
+    if (cmd != CMD_IDLE) {
+      sendCmd(cmd, channel);
     } else {
       WriteLog("[ERR ] - incoming MQTT payload unknown.", true);
     }

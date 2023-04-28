@@ -238,39 +238,24 @@ void loop()
   }
   server.handleClient();
 
-  CC1101Loop();
-
   MqttLoop();
 
   // run a CMD whenever a web_cmd event has been triggered
   if (web_cmd != "") {
-
-    iset = true;
-    detachInterrupt(RX_PORT); // Interrupt on change of RX_PORT
-    delay(1);
-
-    if (web_cmd == "up") {
-      cmd_up(web_cmd_channel);
-    } else if (web_cmd == "down") {
-      cmd_down(web_cmd_channel);
-    } else if (web_cmd == "stop") {
-      cmd_stop(web_cmd_channel);
-    } else if (web_cmd == "set shade") {
-      cmd_set_shade_position(web_cmd_channel);
-    } else if (web_cmd == "shade") {
-      cmd_shade(web_cmd_channel);
-    } else if (web_cmd == "learn") {
-      cmd_learn(web_cmd_channel);
-    } else if (web_cmd == "updown") {
-      cmd_updown(web_cmd_channel);
-    } else if (web_cmd == "save") {
+    if (web_cmd == "save") {
       Serial.println("main loop: in web_cmd save");
       cmd_save_config();
     } else if (web_cmd == "restart") {
       Serial.println("main loop: in web_cmd restart");
       cmd_restart();
     } else {
-      WriteLog("[ERR ] - received unknown command from web_cmd.", true);
+
+      ShutterCmd cmd = string2ShutterCmd(web_cmd.c_str());
+      if (cmd != CMD_IDLE) {
+        sendCmd(cmd, web_cmd_channel);
+      } else {
+        WriteLog("[ERR ] - received unknown command from web_cmd.", true);
+      }
     }
     web_cmd = "";
   }
@@ -555,5 +540,71 @@ void ntpTimeSet(void) {
   if (!timeIsSet) {
     timeIsSet = true;
     WriteLog("[INFO] - time set from NTP server", true);
+  }
+}
+
+//####################################################################
+// convert string (from web or MQTT) to shutter command
+//####################################################################
+ShutterCmd string2ShutterCmd(const char* str) {
+  if (strcmp(str, "UP") == 0) {
+    return CMD_UP;
+  } else if (strcmp(str, "0") == 0) {
+    return CMD_UP;
+  } else if (strcmp(str, "DOWN") == 0) {
+    return CMD_DOWN;
+  } else if (strcmp(str, "100") == 0) {
+    return CMD_DOWN;
+  } else if (strcmp(str, "STOP") == 0) {
+    return CMD_STOP;
+  } else if (strcmp(str, "SETSHADE") == 0) {
+    return CMD_SETSHADE;
+  } else if (strcmp(str, "SHADE") == 0) {
+    return CMD_SHADE;
+  } else if (strcmp(str, "90") == 0) {
+    return CMD_SHADE;
+  } else if (strcmp(str, "LEARN") == 0) {
+    return CMD_LEARN;
+  } else if (strcmp(str, "UPDOWN") == 0) {
+    return CMD_UPDOWN;
+  } else {
+    return CMD_IDLE;
+  }
+}
+
+//####################################################################
+// send shutter command to selected shutter
+//####################################################################
+void sendCmd(ShutterCmd cmd, unsigned channel) {
+  CC1101Loop();
+
+  iset = true;
+  detachInterrupt(RX_PORT); // Interrupt on change of RX_PORT
+  delay(1);
+
+  switch (cmd) {
+    case CMD_UP:
+      cmd_up(channel);
+      break;
+    case CMD_DOWN:
+      cmd_down(channel);
+      break;
+    case CMD_STOP:
+      cmd_stop(channel);
+      break;
+    case CMD_SETSHADE:
+      cmd_set_shade_position(channel);
+      break;
+    case CMD_SHADE:
+      cmd_shade(channel);
+      break;
+    case CMD_UPDOWN:
+      cmd_updown(channel);
+      break;
+    case CMD_LEARN:
+      cmd_learn(channel);
+      break;
+    case CMD_IDLE:
+      break;
   }
 }
