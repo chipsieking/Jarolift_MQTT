@@ -1,5 +1,8 @@
-#include "Schedule.h"
-Schedules Schedules;
+Schedules scheduler;
+
+Schedules* getScheduler() {
+  return &scheduler;
+}
 
 String lastTime;
 String nextTime;
@@ -7,25 +10,23 @@ String nextTime;
 void InitSchedules() {
   int index = 0;
   if (DEVICE)
-    Schedules.FileName = "/schedules2.txt";
+    scheduler.FileName = "/schedules2.txt";
   else
-    Schedules.FileName = "/schedules.txt";
-  if (!SPIFFS.exists(Schedules.FileName))
+    scheduler.FileName = "/schedules.txt";
+  if (!SPIFFS.exists(scheduler.FileName))
     WriteLog("[INFO] - No schedules found", true);
-  File myFile = SPIFFS.open(Schedules.FileName, "r");
+  File myFile = SPIFFS.open(scheduler.FileName, "r");
   while (myFile.available()) {
     String lineString = myFile.readStringUntil('\n');
-    Schedules.Items[index].FromString(lineString);
+    scheduler.Items[index].FromString(lineString);
     index++;
   }
   myFile.close();
-
-  SetSchedulerPointer(&Schedules);
 }
 
 void SchedulerLoop() {
   //only start when time is ready:
-  if (time_is_set_first)
+  if (!timeIsSet)
     return;
   char *dstAbbrev;
   time_t now = dstAdjusted.time(&dstAbbrev);
@@ -36,13 +37,13 @@ void SchedulerLoop() {
   uint8_t hour = timeinfo->tm_hour;
   uint8_t minute = timeinfo->tm_min;
 
-  if (Schedules.isUpdated) {
-    Schedules.isUpdated = false;
+  if (scheduler.isUpdated) {
+    scheduler.isUpdated = false;
     nextTime = "";
   }
   //Nothing found or wait for next day
   if (nextTime.length() <= 0) {
-    nextTime = Schedules.GetNextScheduledTime(weekday, hour, minute);
+    nextTime = scheduler.GetNextScheduledTime(weekday, hour, minute);
     if (nextTime.length() > 0 && nextTime != lastTime)
       WriteLog("[INFO] - Next Schedule: Day " + String(weekday) + " Time " + nextTime, true);
   }
@@ -71,20 +72,20 @@ void ExecuteSchedule(uint8_t weekday, uint8_t hour, uint8_t minute) {
   long startTime = millis();
   digitalWrite(led_pin, LOW);
 
-  for ( uint8_t i = 0; i < Schedules.length(); i++) {
-    if (Schedules.Items[i].schedule != i)
+  for ( uint8_t i = 0; i < scheduler.length(); i++) {
+    if (scheduler.Items[i].schedule != i)
       break;
 
-    if (!Schedules.Items[i].isInWeekday(weekday))
+    if (!scheduler.Items[i].isInWeekday(weekday))
       continue;
 
-    if (!(Schedules.Items[i].getHour() == hour && Schedules.Items[i].getMinute() == minute))
+    if (!(scheduler.Items[i].getHour() == hour && scheduler.Items[i].getMinute() == minute))
       continue;
-    uint8_t channels[16];
-    uint8_t channelCount = Schedules.Items[i].getChannels(channels);
+    uint8_t channels[MAX_CHANNELS];
+    uint8_t channelCount = scheduler.Items[i].getChannels(channels);
 
     for ( uint8_t c = 0; c < channelCount; c++)
-      SendCommand(channels[c], Schedules.Items[i].typeText);
+      SendCommand(channels[c], scheduler.Items[i].typeText);
   }
   digitalWrite(led_pin, HIGH);
   WriteLog("[INFO] - Schedule Executed. Runtime: " + String(millis() - startTime) + "ms" , true);

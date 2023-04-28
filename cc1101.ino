@@ -101,7 +101,7 @@ void CheckRxBuffer(){
 //####################################################################
 // Receive Routine
 //####################################################################
-void ICACHE_RAM_ATTR radio_rx_measure()
+void IRAM_ATTR radio_rx_measure()
 {
   static long LineUp, LineDown, Timeout;
   long LowVal, HighVal;

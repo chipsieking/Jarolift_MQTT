@@ -36,7 +36,7 @@ class Schedule {
     }
     uint8_t getChannels(uint8_t *channelList) {
       uint8_t i = 0;
-      for ( uint8_t c = 0; c < 16; c++)
+      for ( uint8_t c = 0; c < MAX_CHANNELS; c++)
         if (((1 << c) & channels) == 1 << c)
           channelList[i++] = c;
       channelList[i] = '\0';
@@ -131,4 +131,7 @@ class Schedules {
       return Items[entry].timeText;
     }
 };
+
+Schedules* getScheduler();
+
 #endif

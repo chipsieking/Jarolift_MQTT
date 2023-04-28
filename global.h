@@ -18,6 +18,13 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
+#include <simpleDSTadjust.h>
+#include <ESP8266WebServer.h>
+#include <WiFiClient.h>
+#include <PubSubClient.h>
+#include <Ticker.h>
+
+
 #define PROGRAM_VERSION "v0.7"
 
 #define ACCESS_POINT_NAME      "Jarolift-Dongle"  // default SSID for Admin-Mode
@@ -60,6 +67,7 @@ boolean debug_webui = false;
 boolean debug_log_radio_receive_all = false;
 boolean mqtt_send_radio_receive_all = true;
 
+#define MAX_CHANNELS  16
 struct strConfig {
   uint16_t cfgVersion;
   String  ssid;
@@ -82,7 +90,7 @@ struct strConfig {
   // If set to false another method for older versions of Jarolift motors is used.
   String  serial;             // starting serial number as string
   uint32_t serial_number;     // starting serial number as integer
-  String  channel_name[16];
+  String  channel_name[MAX_CHANNELS];
   // temporary values, for web ui, not to store in EEPROM
   String mqtt_devicetopic_new = ""; // needed to figure out if the devicetopic has been changed
   String new_serial = "";
@@ -200,22 +208,9 @@ void WriteConfig()
   WriteStringToEEPROM(450, config.mqtt_broker_password);
   WriteStringToEEPROM(1300, config.mqtt_devicetopic);
 
-  WriteStringToEEPROM(500, config.channel_name[0]);
-  WriteStringToEEPROM(550, config.channel_name[1]);
-  WriteStringToEEPROM(600, config.channel_name[2]);
-  WriteStringToEEPROM(650, config.channel_name[3]);
-  WriteStringToEEPROM(700, config.channel_name[4]);
-  WriteStringToEEPROM(750, config.channel_name[5]);
-  WriteStringToEEPROM(800, config.channel_name[6]);
-  WriteStringToEEPROM(850, config.channel_name[7]);
-  WriteStringToEEPROM(900, config.channel_name[8]);
-  WriteStringToEEPROM(950, config.channel_name[9]);
-  WriteStringToEEPROM(1000, config.channel_name[10]);
-  WriteStringToEEPROM(1050, config.channel_name[11]);
-  WriteStringToEEPROM(1100, config.channel_name[12]);
-  WriteStringToEEPROM(1150, config.channel_name[13]);
-  WriteStringToEEPROM(1200, config.channel_name[14]);
-  WriteStringToEEPROM(1250, config.channel_name[15]);
+  for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
+    WriteStringToEEPROM(500 + i * 50, config.channel_name[i]);
+  }
 
   EEPROM.commit();
   delay(1000);
@@ -278,22 +273,9 @@ boolean ReadConfig()
     config.mqtt_broker_username = ReadStringFromEEPROM(400, 25);
     config.mqtt_broker_password = ReadStringFromEEPROM(450, 25);
 
-    config.channel_name[0] = ReadStringFromEEPROM(500, 25);
-    config.channel_name[1] = ReadStringFromEEPROM(550, 25);
-    config.channel_name[2] = ReadStringFromEEPROM(600, 25);
-    config.channel_name[3] = ReadStringFromEEPROM(650, 25);
-    config.channel_name[4] = ReadStringFromEEPROM(700, 25);
-    config.channel_name[5] = ReadStringFromEEPROM(750, 25);
-    config.channel_name[6] = ReadStringFromEEPROM(800, 25);
-    config.channel_name[7] = ReadStringFromEEPROM(850, 25);
-    config.channel_name[8] = ReadStringFromEEPROM(900, 25);
-    config.channel_name[9] = ReadStringFromEEPROM(950, 25);
-    config.channel_name[10] = ReadStringFromEEPROM(1000, 25);
-    config.channel_name[11] = ReadStringFromEEPROM(1050, 25);
-    config.channel_name[12] = ReadStringFromEEPROM(1100, 25);
-    config.channel_name[13] = ReadStringFromEEPROM(1150, 25);
-    config.channel_name[14] = ReadStringFromEEPROM(1200, 25);
-    config.channel_name[15] = ReadStringFromEEPROM(1250, 25);
+    for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
+      config.channel_name[i] = ReadStringFromEEPROM(500 + i * 50, 25);
+    }
   }
   if (config.cfgVersion == 2)
   { // read config parts of version 2
@@ -370,7 +352,7 @@ void InitializeConfigData()
     config.master_lsb = "0x12345678";
     config.learn_mode = true;
     config.serial = "12345600";
-    for ( int i = 0; i <= 15; i++ ) {
+    for ( int i = 0; i < MAX_CHANNELS; i++ ) {
       config.channel_name[i] = "";
     }
     WriteConfig();

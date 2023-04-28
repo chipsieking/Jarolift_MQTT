@@ -104,7 +104,7 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
   WriteLog("[INFO] - incoming MQTT command: channel " + (String) channel + ":", false);
   WriteLog(cmd, true);
 
-  if (channel <= 15) {
+  if (channel < MAX_CHANNELS) {
 
     iset = true;
     detachInterrupt(RX_PORT); // Interrupt @Inputpin
@@ -128,7 +128,7 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
       WriteLog("[ERR ] - incoming MQTT payload unknown.", true);
     }
   } else {
-    WriteLog("[ERR ] - invalid channel, choose one of 0-15", true);
+    WriteLog("[ERR ] - invalid channel, choose one of 0-" + (String)(MAX_CHANNELS - 1), true);
   }
 } // void mqtt_callback
 
@@ -174,9 +174,8 @@ void mqtt_send_config() {
   char numBuffer[25];
 
   if (mqtt_client.connected()) {
-
     // send config of the shutter channels
-    for (int channelNum = 0; channelNum <= 15; channelNum++) {
+    for (int channelNum = 0; channelNum < MAX_CHANNELS; channelNum++) {
       if (config.channel_name[channelNum] != "") {
         if (lineCnt == 0) {
           Payload = "{\"channel\":[";

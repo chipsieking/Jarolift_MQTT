@@ -1,5 +1,3 @@
-#include <SPI.h>
-
 /**
  * Copyright (c) 2011 panStamp <contact@panstamp.com>
  * 
@@ -24,9 +22,7 @@
  * Creation date: 03/03/2011
  */
 
-extern "C" {
 #include "cc1101.h"
-}
 
 #define PORT_GDO0 5
 #define byte uint8_t

@@ -15,12 +15,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Schedules.h"
-Schedules* ScheduleList;
+#ifndef HTML_API_H
+#define HTML_API_H
 
-void SetSchedulerPointer(Schedules *scheduleListPointer){
-  ScheduleList = scheduleListPointer;
-}
+#include "Schedules.h"
 
 //####################################################################
 // API call to get data or execute commands via WebIf
@@ -30,7 +28,7 @@ void html_api() {
   if (server.args() > 0 ) {
     // get server args from HTML POST
     String cmd = "";
-    int channel;
+    unsigned channel = MAX_CHANNELS;  // needs to be overridden to become valid
     String channel_name = "";
     if (debug_webui) {
       for ( uint8_t i = 0; i < server.args(); i++ ) {
@@ -113,24 +111,10 @@ void html_api() {
         web_cmd = cmd;
       } else if (cmd == "get channel name") {
         String values = "";
-        values += "channel_0=" + config.channel_name[0] + "\n";
-        values += "channel_1=" + config.channel_name[1] + "\n";
-        values += "channel_2=" + config.channel_name[2] + "\n";
-        values += "channel_3=" + config.channel_name[3] + "\n";
-        values += "channel_4=" + config.channel_name[4] + "\n";
-        values += "channel_5=" + config.channel_name[5] + "\n";
-        values += "channel_6=" + config.channel_name[6] + "\n";
-        values += "channel_7=" + config.channel_name[7] + "\n";
-        values += "channel_8=" + config.channel_name[8] + "\n";
-        values += "channel_9=" + config.channel_name[9] + "\n";
-        values += "channel_10=" + config.channel_name[10] + "\n";
-        values += "channel_11=" + config.channel_name[11] + "\n";
-        values += "channel_12=" + config.channel_name[12] + "\n";
-        values += "channel_13=" + config.channel_name[13] + "\n";
-        values += "channel_14=" + config.channel_name[14] + "\n";
-        values += "channel_15=" + config.channel_name[15] + "\n";
+        for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
+          values += "channel_" + String(i) + "=" + config.channel_name[i] + "\n";
+        }
         server.send ( 200, "text/plain", values );
-
       } else if (cmd == "get config") {
         String values = "";
         values += "ssid=" + config.ssid + "\n";
@@ -176,7 +160,7 @@ void html_api() {
         server.send ( 200, "text/plain", values );
 
       } else if ( cmd == "set channel name") {
-        if ((channel >= 0) && (channel <= 15)) {
+        if (channel < MAX_CHANNELS) {
           config.channel_name[channel] = channel_name;
           WriteConfig();
           String status_text = "Updating channel description to '" + channel_name + "'.";
@@ -184,6 +168,7 @@ void html_api() {
         }
       }
       else if (cmd == "get scheduler") {
+        Schedules* ScheduleList = getScheduler();
         String response_text;
         for ( uint8_t i = 0; i < ScheduleList->length(); i++) {
           if (ScheduleList->Items[i].schedule != i)
@@ -193,6 +178,7 @@ void html_api() {
         server.send ( 200, "text/plain", response_text );
       }
       else if (cmd == "set scheduler") {
+        Schedules* ScheduleList = getScheduler();
         ScheduleList->Clear();
         File myFile = SPIFFS.open(ScheduleList->FileName, "w");  
         for ( uint8_t i = 1; i < server.args(); i += 5 ) {
@@ -220,11 +206,12 @@ void html_api() {
         server.send ( 200, "text/plain", "OK" );
         WriteLog("[INFO] - Schedules stored.", true);
       } else {
-
-        web_cmd_channel = channel;
-        web_cmd = cmd;
-        String status_text = "Running command '" + cmd + "' for channel " + channel + ".";
-        server.send ( 200, "text/plain", status_text );
+        if (channel < MAX_CHANNELS) {
+          web_cmd_channel = channel;
+          web_cmd = cmd;
+          String status_text = "Running command '" + cmd + "' for channel " + channel + ".";
+          server.send ( 200, "text/plain", status_text );
+        }
       }
 
     } else {
@@ -234,3 +221,5 @@ void html_api() {
     delay(100);
   }
 } // void html_api
+
+#endif // HTML_API_H

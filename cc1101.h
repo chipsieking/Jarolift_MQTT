@@ -1,5 +1,3 @@
-#include <SPI.h>
-
 /**
  * Copyright (c) 2011 panStamp <contact@panstamp.com>
  * 
@@ -27,11 +25,10 @@
 #ifndef _CC1101_H
 #define _CC1101_H
 
-//#include "simplespi.h"
-extern "C" {
 #include <stdint.h>
 #include "ccpacket.h"
-}
+#include "SPI.h"
+
 
 /**
  * Carrier frequencies
@@ -546,4 +543,3 @@ class CC1101
 };
 
 #endif
-

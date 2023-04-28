@@ -45,27 +45,20 @@
 
 
 #include <ESP8266WiFi.h>
-#include <WiFiClient.h>
 #include <EEPROM.h>
-#include <ESP8266WebServer.h>
+#include <DoubleResetDetector.h>
 #include <SPI.h>
 #include <FS.h>
-#include <PubSubClient.h>
-#include <Ticker.h>
-#include <DoubleResetDetector.h>
-#include <simpleDSTadjust.h>
-#include <coredecls.h>              // settimeofday_cb()
 
 #include "helpers.h"
 #include "global.h"
-#include "html_api.h"
-
-extern "C" {
-#include "user_interface.h"
-#include "Arduino.h"
 #include "cc1101.h"
+
+// needed by other *.ino
+#include "html_api.h"
+#include "Schedules.h"
 #include <KeeloqLib.h>
-}
+
 
 // Number of seconds after reset during which a
 // subseqent reset will be considered a double reset.
@@ -86,11 +79,11 @@ uint64_t button          = 0x0; // 1000=0x8 up, 0100=0x4 stop, 0010=0x2 down, 00
 int disc                 = 0x0;
 uint32_t dec             = 0;   // stores the 32Bit encrypted code
 uint64_t pack            = 0;   // Contains data to send.
-byte disc_low[16]        = {0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x0, 0x0, 0x0, 0x0, 0x0,  0x0,  0x0,  0x0};
-byte disc_high[16]       = {0x0, 0x0, 0x0, 0x0, 0x0,  0x0,  0x0,  0x0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80};
+byte disc_low[MAX_CHANNELS]   = {0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x0, 0x0, 0x0, 0x0, 0x0,  0x0,  0x0,  0x0};
+byte disc_high[MAX_CHANNELS]  = {0x0, 0x0, 0x0, 0x0, 0x0,  0x0,  0x0,  0x0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80};
 byte disc_l              = 0;
 byte disc_h              = 0;
-byte adresses[]          = {5, 11, 17, 23, 29, 35, 41, 47, 53, 59, 65, 71, 77, 85, 91, 97 }; // Defines start addresses of channel data stored in EEPROM 4bytes s/n.
+byte adresses[MAX_CHANNELS]   = {5, 11, 17, 23, 29, 35, 41, 47, 53, 59, 65, 71, 77, 85, 91, 97 }; // Defines start addresses of channel data stored in EEPROM 4bytes s/n.
 uint64_t new_serial      = 0;
 byte marcState;
 int MqttRetryCounter = 0;                 // Counter for MQTT reconnect
@@ -117,12 +110,12 @@ volatile bool iset = false;
 volatile byte value = 0;                  // Stores RSSI Value
 long rx_time;
 int steadycnt = 0;
-boolean time_is_set_first = true;
+static boolean timeIsSet;
 DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 CC1101 cc1101;                            // The connection to the hardware chip CC1101 the RF Chip
 
 // forward declarations
-void ICACHE_RAM_ATTR radio_rx_measure();
+void IRAM_ATTR radio_rx_measure();
 
 //Over the Air Update
 #include <ArduinoOTA.h>
@@ -141,22 +134,27 @@ void setup()
   InitLog();
   EEPROM.begin(4096);
   Serial.begin(115200);
-  settimeofday_cb(time_is_set);
-  updateNTP(); // Init the NTP time
+
+  // Init the NTP time
+  settimeofday_cb(ntpTimeSet);
+  configTime(TIMEZONE * 3600, 0, NTP_SERVERS);
+  
   WriteLog("[INFO] - starting Jarolift Dongle " + (String)PROGRAM_VERSION, true);
   WriteLog("[INFO] - ESP-ID " + (String)ESP.getChipId() + " // ESP-Core  " + ESP.getCoreVersion() + " // SDK Version " + ESP.getSdkVersion(), true);
 
   // callback functions for WiFi connect and disconnect
   // placed as early as possible in the setup() function to get the connect
   // message catched when the WiFi connect is really fast
-  gotIpEventHandler = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP & event)
+  gotIpEventHandler = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP &event)
   {
+    (void)event;
     WriteLog("[INFO] - WiFi station connected - IP: " + WiFi.localIP().toString(), true);
     wifi_disconnect_log = true;
   });
 
-  disconnectedEventHandler = WiFi.onStationModeDisconnected([](const WiFiEventStationModeDisconnected & event)
+  disconnectedEventHandler = WiFi.onStationModeDisconnected([](const WiFiEventStationModeDisconnected &event)
   {
+    (void)event;
     if (wifi_disconnect_log) {
       WriteLog("[INFO] - WiFi station disconnected", true);
       // turn off logging disconnect events after first occurrence, otherwise the log is filled up
@@ -541,7 +539,7 @@ void cmd_restart() {
 void cmd_generate_serials(uint32_t sn) {
   WriteLog("[CFG ] - Generate serial numbers starting from" + String(sn), true);
   uint32_t z = sn;
-  for (uint32_t i = 0; i <= 15; ++i) { // generate 16 serial numbers and storage in EEPROM
+  for (uint32_t i = 0; i < MAX_CHANNELS; ++i) { // generate 16 serial numbers and storage in EEPROM
     EEPROM.put(adresses[i], z);   // Serial 4Bytes
     z++;
   }
@@ -551,18 +549,11 @@ void cmd_generate_serials(uint32_t sn) {
 } // void cmd_generate_serials
 
 //####################################################################
-// NTP update
-//####################################################################
-void updateNTP() {
-  configTime(TIMEZONE * 3600, 0, NTP_SERVERS);
-} // void updateNTP
-
-//####################################################################
 // callback function when time is set via SNTP
 //####################################################################
-void time_is_set(void) {
-  if (time_is_set_first) {    // call WriteLog only once for the initial time set
-    time_is_set_first = false;
+void ntpTimeSet(void) {
+  if (!timeIsSet) {
+    timeIsSet = true;
     WriteLog("[INFO] - time set from NTP server", true);
   }
-} // void time_is_set
+}
