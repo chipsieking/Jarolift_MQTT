@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
-<html>
+<html lang="en">
   <head>
-    <meta charset="UTF-8"/>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Jarolift Wifi Dongle</title>
 
@@ -31,7 +31,6 @@
         <div class="siimple-box" align="center">
           <div class="siimple-box-subtitle">Jarolift Wifi Dongle - Welcome</div>
         </div>
-
         <br>
         <h3>General</h3>
         This version is a fork of the &quot;Jarolift TDEF in FHEM&quot; project described in <a class="siimple-link" target="_blank" href="http://www.bastelbudenbuben.de/2017/04/25/protokollanalyse-von-jarolift-tdef-motoren/">here</a>.
@@ -47,27 +46,23 @@
         </ul>
         The MQTT payload for the &quot;cmd&quot; commands are: &quot;UP&quot;, &quot;DOWN&quot;, &quot;STOP&quot;, &quot;SHADE&quot;, &quot;SETSHADE&quot; and &quot;LEARN&quot;.
         All MQTT topics and commands are case sensitive, use them exactly as described here.
-        <p>
-          <h4>Example MQTT topics to send commands to the Wifi Dongle:</h4>
-          <pre class="siimple-pre">
+        <h4>Example MQTT topics to send commands to the Wifi Dongle:</h4>
+        <pre class="siimple-pre">
 cmd/jarolift/shutter/0 UP
 cmd/jarolift/shutter/4 DOWN
 cmd/jarolift/shutter/2 STOP
 cmd/jarolift/shutter/6 SHADE
 cmd/jarolift/shutter/12 SETSHADE
 cmd/jarolift/shutter/12 LEARN</pre>
-        </p>
-        <p>
-          <h4>MQTT topics send back with the updated status of a shutter:</h4>
-          The status of a shutter is:
-          <ul>
-            <li>0 - open</li>
-            <li>90 - shade position</li>
-            <li>100 - close</li>
-          </ul>
-          <pre class="siimple-pre">
+        <h4>MQTT topics send back with the updated status of a shutter:</h4>
+        The status of a shutter is:
+        <ul>
+          <li>0 - open</li>
+          <li>90 - shade position</li>
+          <li>100 - close</li>
+        </ul>
+        <pre class="siimple-pre">
 stat/jarolift/shutter/0 100</pre>
-        </p>
         <br>
         <h3>Integration into openHAB</h3>
         The integration in Smart Home system openHAB is actually pretty easy. Just install a MQTT broker binding and add the following into the item configuration:
@@ -89,12 +84,11 @@ cover:
   payload_stop: &quot;STOP&quot;
   payload_available: &quot;Online&quot;
   payload_not_available: &quot;Offline&quot;</pre>
-
         <div class="modal-content">
           <form action="upload" method="post" enctype="multipart/form-data" id="UploadForm">
             <div class="upload-btn-wrapper">
               <button type="submit">Upload</button>
-              <input type="file" name="myfile" id="uploadFile" onchange="Upload()" title="Upload/Update" />
+              <input type="file" name="myfile" id="uploadFile" onchange="Upload()" title="Upload/Update">
             </div>
           </form>
         </div>

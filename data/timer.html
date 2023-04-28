@@ -1,14 +1,14 @@
 <!DOCTYPE HTML>
 <html lang="en">
    <head>
-      <meta charset="UTF-8"/>
+      <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>Jarolift Wifi Dongle</title>
       <!-- Styles -->
       <link rel="stylesheet" type="text/css" href="style.css">
       <script src="scripts.js"></script>
       <link rel="shortcut icon" type="image/x-icon" href="favicon.png">
-      <script type="text/javascript">
+      <script>
          window.onload=function(){
             getChannels();
             getScheduler();
@@ -190,7 +190,7 @@
            }
          };
          http.onerror = function (e) {
-         SchedulerToHtml('schedule=0&weekday=31&time=07:00&type=up&channel=23\nschedule=1&weekday=31&time=21:00&type=down&channel=23\nschedule=2&weekday=31&time=07:00&type=up&channel=224\nschedule=3&weekday=31&time=20:00&type=down&channel=224\nschedule=4&weekday=96&time=08:30&type=up&channel=23\nschedule=5&weekday=96&time=21:00&type=down&channel=23\nschedule=6&weekday=96&time=09:00&type=up&channel=224\nschedule=7&weekday=96&time=21:00&type=down&channel=224\n');
+         SchedulerToHtml('schedule=0&weekday=31&time=07:00&type=UP&channel=23\nschedule=1&weekday=31&time=21:00&type=DOWN&channel=23\nschedule=2&weekday=31&time=07:00&type=UP&channel=224\nschedule=3&weekday=31&time=20:00&type=DOWN&channel=224\nschedule=4&weekday=96&time=08:30&type=UP&channel=23\nschedule=5&weekday=96&time=21:00&type=DOWN&channel=23\nschedule=6&weekday=96&time=09:00&type=UP&channel=224\nschedule=7&weekday=96&time=21:00&type=DOWN&channel=224\n');
          };
          http.open("POST", "api", true);
          http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
@@ -303,7 +303,7 @@
             </div>
          </div>
          <!-- Content -->
-         <div class="siimple-content siimple-content--medium" id="container">
+         <div class="siimple-content siimple-content--medium">
             <div class="siimple-box" align="center">
                <div class="siimple-box-subtitle">Wifi Dongle - Control Scheduler</div>
                <div class="siimple-box-details">
@@ -311,7 +311,7 @@
                </div>
             </div>
          </div>
-         <div class="siimple-content siimple-content--medium" id="container">
+         <div class="siimple-content siimple-content--medium">
             <div class="siimple-box" align="center">
                <table class="table" id="schedulerTable">
                   <thead>
@@ -323,13 +323,13 @@
                   </thead>
                   <tbody>
                      <tr>
-                        <td style="text-align: center;"><input type="time" id="Time" value="00:00"/></td>
+                        <td style="text-align: center;"><input type="time" id="Time" value="00:00"></td>
                         <td style="text-align: center;">
                            <select id="Type" title="Type">
-                              <option value="up">up</option>
-                              <option value="down">down</option>
-                              <option value="shade">shade</option>
-                              <option value="stop">stop</option>
+                              <option value="UP">UP</option>
+                              <option value="DOWN">DOWN</option>
+                              <option value="SHADE">SHADE</option>
+                              <option value="STOP">STOP</option>
                            </select>
                         </td>
                         <td style="text-align: center;"><select id="Channel" multiple title="Channel">
@@ -338,7 +338,7 @@
                      </tr>
                   </tbody>
                </table>
-               <table class="table" id="schedulerTable">
+               <table class="table" id="weekdayTable">
                   <thead>
                      <tr>
                         <th>Mon</th>
@@ -352,13 +352,13 @@
                   </thead>
                   <tbody>
                      <tr>
-                        <td style="text-align: center;"><input type="Checkbox" id="DayMon" /></td>
-                        <td style="text-align: center;"><input type="Checkbox" id="DayTue" /></td>
-                        <td style="text-align: center;"><input type="Checkbox" id="DayWed" /></td>
-                        <td style="text-align: center;"><input type="Checkbox" id="DayThu" /></td>
-                        <td style="text-align: center;"><input type="Checkbox" id="DayFri" /></td>
-                        <td style="text-align: center;"><input type="Checkbox" id="DaySat" /></td>
-                        <td style="text-align: center;"><input type="Checkbox" id="DaySun" /></td>
+                        <td style="text-align: center;"><input type="Checkbox" id="DayMon" ></td>
+                        <td style="text-align: center;"><input type="Checkbox" id="DayTue" ></td>
+                        <td style="text-align: center;"><input type="Checkbox" id="DayWed" ></td>
+                        <td style="text-align: center;"><input type="Checkbox" id="DayThu" ></td>
+                        <td style="text-align: center;"><input type="Checkbox" id="DayFri" ></td>
+                        <td style="text-align: center;"><input type="Checkbox" id="DaySat" ></td>
+                        <td style="text-align: center;"><input type="Checkbox" id="DaySun" ></td>
                      </tr>
                   </tbody>
                </table>
@@ -368,7 +368,7 @@
                </div>
             </div>
          </div>
-         <div class="siimple-content siimple-content--medium" id="container">
+         <div class="siimple-content siimple-content--medium">
             <div class="siimple-box" align="center">
                <table class="table" id="schedulerEntries">
                   <thead>
@@ -382,8 +382,8 @@
                   <tbody>
                      <tr class="trSelect" onClick="selectRow(this)">
                         <td id="col0" style="text-align: center;">Mon,Tue,Wed,Thu,Fri</td>
-                        <td id="col1" style="text-align: center;"><input type="time" disabled value="07:00"/></td>
-                        <td id="col2" style="text-align: center;">up</td>
+                        <td id="col1" style="text-align: center;"><input type="time" disabled value="07:00"></td>
+                        <td id="col2" style="text-align: center;">UP</td>
                         <td id="col3" style="text-align: center;">0,1,2</td>
                      </tr>
                   </tbody>
