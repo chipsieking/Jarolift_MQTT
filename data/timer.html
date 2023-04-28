@@ -9,18 +9,18 @@
       <script src="scripts.js"></script>
       <link rel="shortcut icon" type="image/x-icon" href="favicon.png">
       <script type="text/javascript">
-         window.onload=function(){			
-         	getChannels();
-         	getScheduler();
-         	document.getElementById('spinner').style.display = "none";			
+         window.onload=function(){
+            getChannels();
+            getScheduler();
+            document.getElementById('spinner').style.display = "none";
          }
          var selection = 0;
          var weekdays = ['Mon','Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
          var channels = [];
-         function addRow(){ 
+         function addRow(){
          var table = document.getElementById('schedulerEntries');
          var rowCount = table.rows.length;
-         var cellCount = table.rows[0].cells.length; 
+         var cellCount = table.rows[0].cells.length;
          var row = table.insertRow(rowCount);
          row.className = 'trSelect';
          row.onclick = function() { selectRow(this); };
@@ -28,7 +28,7 @@
          var cell = 'cell'+i;
          cell = row.insertCell(i);
          var copycel = table.rows[1].cells[i].innerHTML;
-         cell.innerHTML=copycel;		
+         cell.innerHTML=copycel;
          }
          document.getElementById('BtnRemove').style.visibility = 'visible';
          }
@@ -42,11 +42,11 @@
          rowCount--;
          }
          if(rowCount <= '2')
-         document.getElementById('BtnRemove').style.visibility = 'hidden';	
+         document.getElementById('BtnRemove').style.visibility = 'hidden';
          }
          function selectRow(element){
-		document.getElementById('modifyBtn').style.visibility = 'visible';
-		document.getElementById('SelectInfo').style.visibility = 'hidden';		
+        document.getElementById('modifyBtn').style.visibility = 'visible';
+        document.getElementById('SelectInfo').style.visibility = 'hidden';
          var number = element.rowIndex;
          var prevSelection = selection;
          selection = number + 1;
@@ -56,73 +56,73 @@
          row.className = "trSelected";
          if(prevSelection != 0)
          table.rows[prevSelection-1].className = "trSelect";
-         var cellCount = row.cells.length; 	
+         var cellCount = row.cells.length;
          for(var i =0; i < cellCount; i++){
          switch(i){
-         	case 0:
-         		var arr = row.cells[i].innerHTML.split(',');
-         		for (var w = 0; w < weekdays.length; ++w) {
-         			document.getElementById('Day' + weekdays[w]).checked = arr.includes(weekdays[w]);
-         		}
-         	break;
-         	case 1:
-         		var timeInput = row.cells[i].getElementsByTagName("input")[0];
-         		document.getElementById('Time').value = timeInput.value;
-         	break;
-         	case 2:
-         		var typeTxt = row.cells[i].innerHTML;
-         		var type = document.getElementById('Type');
-         		for (var o = 0; o < type.options.length; ++o) {
-         			if (type.options[o].text === typeTxt)
-         				type.options[o].selected = true;
-         		}
-         	break;
-         	case 3:
-         		var ChanTxt = row.cells[i].innerHTML;
-         		var channel = document.getElementById('Channel');
-         		for (var o = 0; o < channel.options.length; ++o) 					
-         			channel.options[o].selected = ChanTxt.includes(o);				
-         	break;
+            case 0:
+                var arr = row.cells[i].innerHTML.split(',');
+                for (var w = 0; w < weekdays.length; ++w) {
+                    document.getElementById('Day' + weekdays[w]).checked = arr.includes(weekdays[w]);
+                }
+            break;
+            case 1:
+                var timeInput = row.cells[i].getElementsByTagName("input")[0];
+                document.getElementById('Time').value = timeInput.value;
+            break;
+            case 2:
+                var typeTxt = row.cells[i].innerHTML;
+                var type = document.getElementById('Type');
+                for (var o = 0; o < type.options.length; ++o) {
+                    if (type.options[o].text === typeTxt)
+                        type.options[o].selected = true;
+                }
+            break;
+            case 3:
+                var ChanTxt = row.cells[i].innerHTML;
+                var channel = document.getElementById('Channel');
+                for (var o = 0; o < channel.options.length; ++o)
+                    channel.options[o].selected = ChanTxt.includes(o);
+            break;
          }
          }
          }
          function submitRows(){
-         document.getElementById('spinner').style.display = "inline"; 
+         document.getElementById('spinner').style.display = "inline";
          var table = document.getElementById('schedulerEntries');
          var rowCount = table.rows.length;
-         var cellCount = table.rows[0].cells.length; 
+         var cellCount = table.rows[0].cells.length;
          var output = '&';
          for(var r = 1; r < rowCount; r++){
          output += 'schedule=' + (r-1);
          var row = table.rows[r];
          for(var c =0; c < cellCount; c++){
-         	var cell = row.cells[c];			
-         	switch(c){
-         		case 0:
-         			var arr = cell.innerHTML.split(',');
-         			var wd = 0;
-         			for (var w = 0; w < weekdays.length; ++w) {
-         				if(arr.includes(weekdays[w]))
-         					wd += 1 << w;
-         			}
-         			output += '&weekday=' + wd;
-         		break;
-         		case 1:
-         			var timeInput = cell.getElementsByTagName("input")[0];
-         			output += '&time=' + timeInput.value;
-         		break;
-         		case 2:
-         			var typeTxt = cell.innerHTML;
-         			output += '&type=' + typeTxt;
-         		break;
-         		case 3:
-         			var cn = 0;
-         			var arr = cell.innerHTML.split(',');					
-         			for (var a = 0; a < arr.length; ++a)
-         					cn += 1 << parseInt(arr[a]);
-         			output += '&channel=' + cn;
-         		break;
-         	}			
+            var cell = row.cells[c];
+            switch(c){
+                case 0:
+                    var arr = cell.innerHTML.split(',');
+                    var wd = 0;
+                    for (var w = 0; w < weekdays.length; ++w) {
+                        if(arr.includes(weekdays[w]))
+                            wd += 1 << w;
+                    }
+                    output += '&weekday=' + wd;
+                break;
+                case 1:
+                    var timeInput = cell.getElementsByTagName("input")[0];
+                    output += '&time=' + timeInput.value;
+                break;
+                case 2:
+                    var typeTxt = cell.innerHTML;
+                    output += '&type=' + typeTxt;
+                break;
+                case 3:
+                    var cn = 0;
+                    var arr = cell.innerHTML.split(',');
+                    for (var a = 0; a < arr.length; ++a)
+                            cn += 1 << parseInt(arr[a]);
+                    output += '&channel=' + cn;
+                break;
+            }
          }
          output += '&';
          }
@@ -130,12 +130,12 @@
          output = output.substring(0, output.length - 1);
          var http = new XMLHttpRequest();
          http.onreadystatechange = function() {
-           if (this.readyState == 4 && this.status == 200) {		
-         document.getElementById('spinner').style.display = "none"; 
+           if (this.readyState == 4 && this.status == 200) {
+         document.getElementById('spinner').style.display = "none";
          }
          };
          http.onerror = function (e) {
-         document.getElementById('spinner').style.display = "none"; 
+         document.getElementById('spinner').style.display = "none";
          alert('error sending Data!');
          };
          http.open("POST", "api", true);
@@ -146,23 +146,23 @@
          var http = new XMLHttpRequest();
          http.onreadystatechange = function() {
            if (this.readyState == 4 && this.status == 200) {
-         
+
              var lines = this.responseText.split('\n');
              for (var j = 0; j < lines.length; j++) {
                var result = lines[j].split('=');
-         
+
                if (result[0] != ""){
-         
+
                  //get channel Id and get configured status
                  var channel_id = (result[0].split('_'))[1];
-                           
+
            var channel_name = result[1];
-                 if (channel_name != ""){            
+                 if (channel_name != ""){
                    channels.push(channel_name);
-                 }          
+                 }
                }
-             }      
-         UpdateChannels();	  
+             }
+         UpdateChannels();
            }
          };
          http.onerror = function (e) {
@@ -175,7 +175,7 @@
          }
          function UpdateChannels(){
          var channel = document.getElementById('Channel');
-         for (var o = 0; o < channels.length; o++){		
+         for (var o = 0; o < channels.length; o++){
          var option = document.createElement("option");
          option.value = o;
          option.text = channels[o];
@@ -186,7 +186,7 @@
          var http = new XMLHttpRequest();
          http.onreadystatechange = function() {
            if (this.readyState == 4 && this.status == 200) {
-         SchedulerToHtml(this.responseText);         
+         SchedulerToHtml(this.responseText);
            }
          };
          http.onerror = function (e) {
@@ -207,41 +207,41 @@
          var time;
          var type;
          var channel;
-               var result = lines[j].split('&');		
+               var result = lines[j].split('&');
          for (var k = 0; k < result.length; k++) {
-         	var element = result[k].split('=');			
-         	if (element[0] == "schedule")
-         		schedulerNo = element[1];
-         	if (element[0] == "weekday")
-         		day = element[1];
-         	if (element[0] == "time")
-         		time = element[1];
-         	if (element[0] == "type")
-         		type = element[1];
-         	if (element[0] == "channel")
-         		channel = element[1];			
+            var element = result[k].split('=');
+            if (element[0] == "schedule")
+                schedulerNo = element[1];
+            if (element[0] == "weekday")
+                day = element[1];
+            if (element[0] == "time")
+                time = element[1];
+            if (element[0] == "type")
+                type = element[1];
+            if (element[0] == "channel")
+                channel = element[1];
                }
          if(schedulerNo >= 1)
-         	addRow();		
-         var table = document.getElementById('schedulerEntries');		
+            addRow();
+         var table = document.getElementById('schedulerEntries');
          var row = table.rows[table.rows.length -1];
          var weekdayText = '';
-         for (var w = 0; w < weekdays.length; w++){			
-         	if(((1<<w) & day) == 1<<w)
-         		weekdayText += weekdays[w] + ',';
+         for (var w = 0; w < weekdays.length; w++){
+            if(((1<<w) & day) == 1<<w)
+                weekdayText += weekdays[w] + ',';
          }
          if(weekdayText.endsWith(','));
-         	weekdayText = weekdayText.substring(0, weekdayText.length - 1);
+            weekdayText = weekdayText.substring(0, weekdayText.length - 1);
          row.cells[0].innerHTML = weekdayText;
          row.cells[1].getElementsByTagName("input")[0].value = time;
-         row.cells[2].innerHTML = type;		
+         row.cells[2].innerHTML = type;
          var channelText = '';
          for (var c = 0; c < channels.length;c++){
-         	if(((1<<c) & channel) == 1<<c)
-         		channelText += c + ',';
+            if(((1<<c) & channel) == 1<<c)
+                channelText += c + ',';
          }
          if(channelText.endsWith(','));
-         	channelText = channelText.substring(0, channelText.length - 1);
+            channelText = channelText.substring(0, channelText.length - 1);
          row.cells[3].innerHTML = channelText;
              }
          }
@@ -252,23 +252,23 @@
          var rowCount = table.rows.length;
          var row = table.rows[selection-1];
          var cellCount = table.rows[0].cells.length;
-         var weekCell = '';	
-         for (var w = 0; w < weekdays.length; ++w) {		
+         var weekCell = '';
+         for (var w = 0; w < weekdays.length; ++w) {
          if(document.getElementById('Day' + weekdays[w]).checked)
-         	weekCell += weekdays[w] + ',';
+            weekCell += weekdays[w] + ',';
          }
          if(weekCell.endsWith(','))
          weekCell = weekCell.substring(0, weekCell.length -1);
-         
+
          row.cells[0].innerHTML = weekCell;
          row.cells[1].getElementsByTagName("input")[0].value = document.getElementById('Time').value;
          row.cells[2].innerHTML = document.getElementById('Type').value;
-         
+
          var ChanTxt = '';
          var channel = document.getElementById('Channel');
-         for (var o = 0; o < channel.options.length; ++o) 					
+         for (var o = 0; o < channel.options.length; ++o)
          if(channel.options[o].selected)
-         	ChanTxt += channel.options[o].value + ',';
+            ChanTxt += channel.options[o].value + ',';
          if(ChanTxt.endsWith(','))
          ChanTxt = ChanTxt.substring(0, ChanTxt.length -1);
          row.cells[3].innerHTML = ChanTxt;
@@ -299,7 +299,7 @@
                <a class="siimple-navbar-link" href="/system.html">System</a>
                <a class="siimple-navbar-link" href="/shutter.html">Shutter</a>
                <a class="siimple-navbar-link" href="timer.html">Timer</a>
-               <a class="siimple-navbar-link" href="/log.html">Log</a>		  
+               <a class="siimple-navbar-link" href="/log.html">Log</a>
             </div>
          </div>
          <!-- Content -->
@@ -332,7 +332,7 @@
                               <option value="stop">stop</option>
                            </select>
                         </td>
-                        <td style="text-align: center;"><select id="Channel" multiple title="Channel">									  
+                        <td style="text-align: center;"><select id="Channel" multiple title="Channel">
                            </select>
                         </td>
                      </tr>
@@ -361,9 +361,9 @@
                         <td style="text-align: center;"><input type="Checkbox" id="DaySun" /></td>
                      </tr>
                   </tbody>
-               </table>			   
+               </table>
                <input type='button' id="modifyBtn" class='siimple-btn siimple-btn--navy' value="Modify" name="Modify" onclick="modifyScheduler()" style="visibility: hidden;">
-			   <div class="siimple-box-details" id="SelectInfo">			   
+               <div class="siimple-box-details" id="SelectInfo">
                   Select a row in the table below, to change it´s values.
                </div>
             </div>
@@ -402,3 +402,4 @@
          <div id="spinner" class="siimple-spinner siimple-spinner--navy siimple-spinner--large"></div>
       </center>
    </body>
+</html>

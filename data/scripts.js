@@ -24,7 +24,6 @@ function getEventLog() {
   http.send("cmd=eventlog");
 }
 
-
 function runShutterCmd(cmd, channel, channel_name) {
   var http = new XMLHttpRequest();
   http.onreadystatechange = function() {
@@ -42,7 +41,6 @@ function setChannelNameCallback(rowData, rowName) {
 }
 
 var setChannelName = {"finishCallback": setChannelNameCallback};
-
 
 function getChannelName(){
   var http = new XMLHttpRequest();
@@ -134,33 +132,29 @@ function getConfig(){
 }
 
 function writeConfig(cmd){
-	var elements = document.getElementById("configForm").elements;
-	var params = "";
-	for (var i = 0, element; element = elements[i++];) {
-		if (element.type == "checkbox"){
-			if (element.checked == true){
-				params += element.name + "=true&"
-			}else{
-				params += element.name + "=false&"
-			}
-		}else{
-			params += element.name + "=" + element.value + "&"
-		}
-	}
-	var http = new XMLHttpRequest();
-	http.onreadystatechange = function() {
-		if (this.readyState == 4 && this.status == 200) {
-			iqwerty.toast.Toast(this.responseText);
-		}
-	};
-	http.open("POST", "api", true);
-	http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-	http.send("cmd=" + cmd + "&" + params);
-
+  var elements = document.getElementById("configForm").elements;
+  var params = "";
+  for (var i = 0, element; element = elements[i++];) {
+    if (element.type == "checkbox"){
+      if (element.checked == true){
+        params += element.name + "=true&"
+      }else{
+        params += element.name + "=false&"
+      }
+    }else{
+      params += element.name + "=" + element.value + "&"
+    }
+  }
+  var http = new XMLHttpRequest();
+  http.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      iqwerty.toast.Toast(this.responseText);
+    }
+  };
+  http.open("POST", "api", true);
+  http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+  http.send("cmd=" + cmd + "&" + params);
 }
-
-
-
 
 var inlineEditRowContents = {};
 
