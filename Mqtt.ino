@@ -123,7 +123,7 @@ void devcnt_handler(boolean do_increment) {
   if (do_increment)
     devcnt++;
   EEPROM.put(cntadr, devcnt);
-  EEPROM.commit();
+//  EEPROM.commit(); avoid committing on each user command -> replaced by cyclic EEPROM commit
   if (mqtt_client.connected()) {
     String Topic = "stat/" + config.mqtt_devicetopic + "/devicecounter";
     const char * msg = Topic.c_str();

@@ -32,16 +32,16 @@ void CheckRxBuffer(){
 
     for (int i = 0; i <= 31; i++) {                          // extracting Hopcode
       if (lowbuf[i + 1] < hibuf[i + 1]) {
-        rx_hopcode = rx_hopcode & ~(1 << i) | (0 << i);
+        rx_hopcode = (rx_hopcode & ~(1 << i)) | (0 << i);
       } else {
-        rx_hopcode = rx_hopcode & ~(1 << i) | (1 << i);
+        rx_hopcode = (rx_hopcode & ~(1 << i)) | (1 << i);
       }
     }
     for (int i = 0; i <= 27; i++) {                         // extracting Serialnumber
       if (lowbuf[i + 33] < hibuf[i + 33]) {
-        rx_serial = rx_serial & ~(1 << i) | (0 << i);
+        rx_serial = (rx_serial & ~(1 << i)) | (0 << i);
       } else {
-        rx_serial = rx_serial & ~(1 << i) | (1 << i);
+        rx_serial = (rx_serial & ~(1 << i)) | (1 << i);
       }
     }
     rx_serial_array[0] = (rx_serial >> 24) & 0xFF;
@@ -51,17 +51,17 @@ void CheckRxBuffer(){
 
     for (int i = 0; i <= 3; i++) {                        // extracting function code
       if (lowbuf[61 + i] < hibuf[61 + i]) {
-        rx_function = rx_function & ~(1 << i) | (0 << i);
+        rx_function = (rx_function & ~(1 << i)) | (0 << i);
       } else {
-        rx_function = rx_function & ~(1 << i) | (1 << i);
+        rx_function = (rx_function & ~(1 << i)) | (1 << i);
       }
     }
 
     for (int i = 0; i <= 7; i++) {                        // extracting high disc
       if (lowbuf[65 + i] < hibuf[65 + i]) {
-        rx_disc_h = rx_disc_h & ~(1 << i) | (0 << i);
+        rx_disc_h = (rx_disc_h & ~(1 << i)) | (0 << i);
       } else {
-        rx_disc_h = rx_disc_h & ~(1 << i) | (1 << i);
+        rx_disc_h = (rx_disc_h & ~(1 << i)) | (1 << i);
       }
     }
 

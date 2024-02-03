@@ -23,6 +23,7 @@
 #include <WiFiClient.h>
 #include <PubSubClient.h>
 #include <Ticker.h>
+#include <EEPROM.h>
 
 
 #define PROGRAM_VERSION "v0.7"
@@ -33,10 +34,12 @@
 #define MQTT_Reconnect_Interval 30000             // try connect to MQTT server very X milliseconds
 #define NTP_SERVERS            "0.pool.ntp.org", "1.pool.ntp.org", "2.pool.ntp.org" // List of up to 3 NTP servers
 #define TIMEZONE               +1                 // difference localtime to UTC/GMT in hours
+#define TIMEZONE_DAYLIGHT       "CEST"            // abbreviation for daylight saving time zone
+#define TIMEZONE_STANDARD       "CET"             // abbreviation for standard time zone
 
-struct dstRule StartRule = {"CEST", Last, Sun, Mar, 2, 3600}; // Daylight time
-struct dstRule EndRule = {"CET", Last, Sun, Oct, 2, 0};       // Standard time
-simpleDSTadjust dstAdjusted(StartRule, EndRule);  // Setup simpleDSTadjust Library rules
+struct dstRule startRule = {TIMEZONE_DAYLIGHT, Last, Sun, Mar, 2, 3600};  // beginning of daylight time
+struct dstRule endRule   = {TIMEZONE_STANDARD, Last, Sun, Oct, 2, 0};     // beginning of standard time
+simpleDSTadjust dstAdjusted(startRule, endRule);  // Setup simpleDSTadjust Library rules
 
 ESP8266WebServer server(80);                      // The Webserver
 WiFiClient espClient;
@@ -389,12 +392,23 @@ void Admin_Mode_Timeout()
 } // void Admin_Mode_Timeout
 
 //####################################################################
-// Callback function for LED HeartBeat
+// Callback function for LED HeartBeat & EEPROM commit
 //####################################################################
 boolean highPulse = true;
 #define HEART_BEAT_CYCLE 60                      // HeartBeat cycle in seconds
-void HeartBeat()
-{
+#define EEPROM_COMMIT_CYCLE 3600                  // cyclic EEPROM commit (if needed)
+void HeartBeat() {
+  static unsigned cnt;
+  if (cnt < EEPROM_COMMIT_CYCLE / HEART_BEAT_CYCLE) {
+    cnt++;
+  } else {
+    // cyclic EEPROM commit (does nothing if not dirty) to avoid excessive flash wear
+    bool ok = EEPROM.commit();
+    if (!ok) {
+      WriteLog("[ERR ] - cyclic EEPROM commit failed");
+    }
+    cnt = 0;
+  }
   float pulse_on  = 0.05;                        // LED on for 50 milliseconds in normal mode
   float pulse_off = HEART_BEAT_CYCLE - pulse_on;
 
