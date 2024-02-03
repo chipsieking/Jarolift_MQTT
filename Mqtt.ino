@@ -192,7 +192,9 @@ void mqtt_send_config() {
               + "\"mqtt-clientid\":\"" + config.mqtt_broker_client_id + "\", "
               + "\"mqtt-devicetopic\":\"" + config.mqtt_devicetopic + "\", "
               + "\"devicecounter\":" + (String)numBuffer + ", "
-              + "\"new_learn_mode\":" + (String)config.learn_mode + "}";
+              + "\"new_learn_mode\":" + (String)config.learn_mode + ", ";
+              + "\"shade_support\":"  + (String)config.shade_support + "}";
+              + "\"shade_enable\":"   + (String)config.shade_enable + "}";
     mqtt_send_config_line(configCnt, Payload);
   } // if (mqtt_client.connected())
 } // void mqtt_send_config

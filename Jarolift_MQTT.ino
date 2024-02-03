@@ -131,7 +131,7 @@ const char deviceNameShort[] = "JaroliftESP8266";
 void setup()
 {
   InitLog();
-  EEPROM.begin(sizeof(struct strConfig));  // EEPROM size needed for config struct - must not exceed 4096 bytes
+  EEPROM.begin(1320); // EEPROM size needed for config info, see doc/config-data-layout.md - must not exceed 4096 bytes
   Serial.begin(115200);
 
   // Init the NTP time
@@ -590,10 +590,20 @@ void sendCmd(ShutterCmd cmd, unsigned channel) {
       cmd_stop(channel);
       break;
     case CMD_SETSHADE:
-      cmd_set_shade_position(channel);
+      if (config.shade_support) {
+        cmd_set_shade_position(channel);
+      }
       break;
     case CMD_SHADE:
-      cmd_shade(channel);
+      if (config.shade_support) {
+        cmd_shade(channel);
+      } else {
+        if (config.shade_runtime[channel] != 0) {
+          cmd_down(channel);
+          delay(config.shade_runtime[channel]);
+          cmd_stop(channel);
+        }
+      }
       break;
     case CMD_UPDOWN:
       cmd_updown(channel);
@@ -604,4 +614,11 @@ void sendCmd(ShutterCmd cmd, unsigned channel) {
     case CMD_IDLE:
       break;
   }
+}
+
+//####################################################################
+// getter for shade_enable
+//####################################################################
+bool isShadingEnabled() {
+  return config.shade_enable;
 }

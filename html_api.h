@@ -74,6 +74,10 @@ void html_api() {
         config.dhcp = (urldecode(server.arg(i)) == "true");
       if (server.argName(i) == "learn_mode")
         config.learn_mode = (urldecode(server.arg(i)) == "true");
+      if (server.argName(i) == "shade_support")
+        config.shade_support = (urldecode(server.arg(i)) == "true");
+      if (server.argName(i) == "shade_enable")
+        config.shade_enable  = (urldecode(server.arg(i)) == "true");
       if (server.argName(i) == "set_and_generate_serial")
         config.set_and_generate_serial = (urldecode(server.arg(i)) == "true");
       if (server.argName(i) == "serial")
@@ -114,6 +118,14 @@ void html_api() {
           values += "channel_" + String(i) + "=" + config.channel_name[i] + "\n";
         }
         server.send ( 200, "text/plain", values );
+      } else if (cmd == "get shade runtime") {
+        String values = "";
+        for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
+          // runtime is in [ms], change to [1/10s] for web display
+          values += "channel_" + String(i) + "=" + config.shade_runtime[i] / 100 + "\n";
+        }
+        server.send ( 200, "text/plain", values );
+
       } else if (cmd == "get config") {
         String values = "";
         values += "ssid=" + config.ssid + "\n";
@@ -151,6 +163,16 @@ void html_api() {
         } else {
           values += "checkbox=learn_mode=0\n";
         }
+        if (config.shade_support) {
+          values += "checkbox=shade_support=1\n";
+        } else {
+          values += "checkbox=shade_support=0\n";
+        }
+        if (config.shade_enable) {
+          values += "checkbox=shade_enable=1\n";
+        } else {
+          values += "checkbox=shade_enable=0\n";
+        }
         values += "serial=" + config.serial + "\n";
         values += "checkbox=set_and_generate_serial=0\n";
         values += "devicecounter=" + (String)devcnt + "\n";
@@ -163,6 +185,14 @@ void html_api() {
           config.channel_name[channel] = channel_name;
           WriteConfig();
           String status_text = "Updating channel description to '" + channel_name + "'.";
+          server.send ( 200, "text/plain", status_text );
+        }
+      } else if ( cmd == "set shade runtime") {
+        if (channel < MAX_CHANNELS) {
+          // use channel_name for carrying runtime, runtime is in [1/10s] -> normalize to [ms]
+          config.shade_runtime[channel] = channel_name.toInt() * 100;
+          WriteConfig();
+          String status_text = "Updating channel " + String(channel) + " shade runtime to '" + String(config.shade_runtime[channel]) + "'.";
           server.send ( 200, "text/plain", status_text );
         }
       } else {

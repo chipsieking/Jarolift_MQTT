@@ -26,7 +26,7 @@
 #include <EEPROM.h>
 
 
-#define PROGRAM_VERSION "v0.7"
+#define PROGRAM_VERSION "v0.8"
 
 #define ACCESS_POINT_NAME      "Jarolift-Dongle"  // default SSID for Admin-Mode
 #define ACCESS_POINT_PASSWORD  "12345678"         // default WLAN password for Admin-Mode
@@ -66,7 +66,7 @@ boolean web_log_message_newline = true;
 
 // boolean settings which will later be configurable through WebUI
 boolean debug_mqtt = false;
-boolean debug_webui = false;
+boolean debug_webui = true;
 boolean debug_log_radio_receive_all = false;
 boolean mqtt_send_radio_receive_all = true;
 
@@ -91,6 +91,9 @@ struct strConfig {
   unsigned long ulMasterLSB;
   boolean learn_mode;         // If set to true, regular learn method is used (up+down, followed by stop).
   // If set to false another method for older versions of Jarolift motors is used.
+  boolean shade_support;      // If set to true, built-in shade mode is used. Otherwise, shading is emulated by DOWN & STOP commands with runtime.
+  boolean shade_enable;       // If set to true, shading is enabled & shutters move to the shade position at the configured time.
+  uint16_t shade_runtime[MAX_CHANNELS];
   String  serial;             // starting serial number as string
   uint32_t serial_number;     // starting serial number as integer
   String  channel_name[MAX_CHANNELS];
@@ -217,6 +220,8 @@ void WriteConfig()
   WriteStringToEEPROM(270, config.master_msb);
   WriteStringToEEPROM(330, config.master_lsb);
   EEPROM.write(350, config.learn_mode);
+  EEPROM.write(351, config.shade_support);
+  EEPROM.write(352, config.shade_enable);
   WriteStringToEEPROM(366, config.serial);
 
   WriteStringToEEPROM(375, config.mqtt_broker_client_id);
@@ -226,6 +231,7 @@ void WriteConfig()
 
   for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
     WriteStringToEEPROM(500 + i * 50, config.channel_name[i]);
+    WriteStringToEEPROM(525 + i * 50, String(config.shade_runtime[i]));
   }
 
   EEPROM.commit();
@@ -283,6 +289,8 @@ boolean ReadConfig()
     config.master_msb = ReadStringFromEEPROM(270, 10);
     config.master_lsb = ReadStringFromEEPROM(330, 10);
     config.learn_mode = EEPROM.read(350);
+    config.shade_support = EEPROM.read(351);
+    config.shade_enable  = EEPROM.read(352);
     config.serial = ReadStringFromEEPROM(366, 10);
 
     config.mqtt_broker_client_id = ReadStringFromEEPROM(375, 25);
@@ -290,7 +298,8 @@ boolean ReadConfig()
     config.mqtt_broker_password = ReadStringFromEEPROM(450, 25);
 
     for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
-      config.channel_name[i] = ReadStringFromEEPROM(500 + i * 50, 25);
+      config.channel_name[i]  = ReadStringFromEEPROM(500 + i * 50, 25);
+      config.shade_runtime[i] = ReadStringFromEEPROM(525 + i * 50, 6).toInt();
     }
   }
   if (config.cfgVersion == 2)
@@ -367,9 +376,12 @@ void InitializeConfigData()
     config.master_msb = "0x12345678";
     config.master_lsb = "0x12345678";
     config.learn_mode = true;
+    config.shade_support = false;
+    config.shade_enable  = false;
     config.serial = "12345600";
     for ( int i = 0; i < MAX_CHANNELS; i++ ) {
-      config.channel_name[i] = "";
+      config.channel_name[i]  = "";
+      config.shade_runtime[i] = 0;
     }
     WriteConfig();
     WriteLog("[INFO] - default config applied", true);

@@ -11,9 +11,7 @@
     <link rel="shortcut icon" type="image/x-icon" href="favicon.png">
     <script>
       window.onload=function(){
-        window.setInterval(function(){
-          getEventLog();
-        }, 3000);
+        getChannelName()
       }
     </script>
   </head>
@@ -33,14 +31,14 @@
       </div>
 
       <!-- Content -->
-      <div class="siimple-content siimple-content--medium">
+      <div class="siimple-content siimple-content--medium" id="container">
         <div class="siimple-box" align="center">
-          <div class="siimple-box-subtitle">Wifi Dongle - Eventlog</div>
-          <div class="siimple-box-details">This eventlog contains a log history of the last events coming from serial output. Its refreshing every 3 seconds.</div>
+          <div class="siimple-box-subtitle">Wifi Dongle - Shutter Control</div>
+          <div class="siimple-box-details">
+            Each shutter channel has to be configured before it will be displayed in the list below.
+            Please click <a href="#" class="siimple-link" onclick="showAllShutterChannel();">configure shutter</a> in order to name each shutter channel.</div>
         </div>
-
         <div id="spinner" class="siimple-spinner siimple-spinner--navy siimple-spinner--large"></div>
-        <pre class="siimple-pre" id="log" style="display: none;"></pre>
       </div>
     </div>
   </body>
