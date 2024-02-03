@@ -1,4 +1,0 @@
-schedule=0&weekday=31&time=07:00&type=up&channel=23
-schedule=1&weekday=31&time=19:00&type=down&channel=23
-schedule=4&weekday=96&time=08:30&type=up&channel=23
-schedule=5&weekday=96&time=19:00&type=down&channel=23

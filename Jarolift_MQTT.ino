@@ -56,7 +56,6 @@
 
 // needed by other *.ino
 #include "html_api.h"
-#include "Schedules.h"
 #include <KeeloqLib.h>
 
 
@@ -208,7 +207,6 @@ void setup()
   pinMode(RX_PORT, INPUT_PULLUP);
   attachInterrupt(RX_PORT, radio_rx_measure, CHANGE); // Interrupt on change of RX_PORT
 
-  InitSchedules();
   SetupOTA();
 } // void setup
 
@@ -260,7 +258,6 @@ void loop()
     web_cmd = "";
   }
 
-  SchedulerLoop();
   OTA_Handle();
 } // void loop
 

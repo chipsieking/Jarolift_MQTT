@@ -392,7 +392,7 @@ void Admin_Mode_Timeout()
 // Callback function for LED HeartBeat
 //####################################################################
 boolean highPulse = true;
-#define HEART_BEAT_CYCLE 4                       // HeartBeat cycle in seconds
+#define HEART_BEAT_CYCLE 60                      // HeartBeat cycle in seconds
 void HeartBeat()
 {
   float pulse_on  = 0.05;                        // LED on for 50 milliseconds in normal mode
