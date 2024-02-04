@@ -28,6 +28,7 @@
 
 #define PROGRAM_VERSION "v0.8"
 
+#define EEPROM_SIZE            1320               // must not exceed 4096 bytes
 #define ACCESS_POINT_NAME      "Jarolift-Dongle"  // default SSID for Admin-Mode
 #define ACCESS_POINT_PASSWORD  "12345678"         // default WLAN password for Admin-Mode
 #define AdminTimeOut           180                // Defines the time in seconds, when the Admin-Mode will be disabled
@@ -241,28 +242,26 @@ void WriteConfig()
 //####################################################################
 // Function to read configuration from EEPROM
 //####################################################################
-boolean ReadConfig()
-{
-  WriteLog("[INFO] - read config from EEPROM . . .", false);
+boolean ReadConfig() {
   config.cfgVersion = 0;
+  char cfgVersBuf[3];
 
-  if (EEPROM.read(120) == 'C' && EEPROM.read(121) == 'F'  && EEPROM.read(122) == 'G' )
-  {
-    WriteLog("config version 1 found", true);
-    config.cfgVersion = 1;
-  } else
-  {
-    if (EEPROM.read(120) == 'C' && EEPROM.read(121) == 'f'  && EEPROM.read(122) == 'g' )
-    {
-      EEPROM.get(123, config.cfgVersion);
-      WriteLog("config version " + (String) config.cfgVersion + " found", true);
-    }
+  WriteLog("[INFO] - read config from EEPROM...", false);
+
+  for (unsigned i = 0; i < sizeof(cfgVersBuf)/sizeof(cfgVersBuf[0]); ++i) {
+    cfgVersBuf[i] = EEPROM.read(120 + i);
   }
-  if (config.cfgVersion == 0)
-  {
-    WriteLog(" no configuration found in EEPROM!!!!", true);
+  if (memcmp(cfgVersBuf, "CFG", 3) == 0) {
+    config.cfgVersion = 1;
+  } else if (memcmp(cfgVersBuf, "Cfg", 3) == 0) {
+    EEPROM.get(123, config.cfgVersion);
+  }
+  if (config.cfgVersion == 0) {
+    WriteLog("no configuration found!", true);
     return false;
   }
+  
+  WriteLog("version " + (String)config.cfgVersion + " found", true);
   if (config.cfgVersion <= 2) // read config parts up to version 2
   {
     config.dhcp = EEPROM.read(128);
@@ -302,18 +301,18 @@ boolean ReadConfig()
       config.shade_runtime[i] = ReadStringFromEEPROM(525 + i * 50, 6).toInt();
     }
   }
-  if (config.cfgVersion == 2)
-  { // read config parts of version 2
+  if (config.cfgVersion == 2) {
+    // read config parts of version 2
     config.mqtt_devicetopic = ReadStringFromEEPROM(1300, 20);
-  } else
-  { // upgrade config to version 2
+  } else {
+    // upgrade config to version 2
     config.mqtt_devicetopic = "jarolift"; // default devicetopic
     config.cfgVersion = 2;
     // clear EEPROM space
-    for (int index = 120 ; index < 4096 ; index++) {
-      EEPROM.write(index, 0);
+    for (unsigned addr = 120; addr < EEPROM_SIZE; ++addr) {
+      EEPROM.write(addr, 0);
     }
-    WriteLog("[INFO] - config update to version 2 - mqtt_devicetopic set to default", true);
+    WriteLog("[INFO] - config update to version 2 - mqtt_devicetopic set to " + config.mqtt_devicetopic, true);
     WriteConfig();
   }
 
@@ -379,7 +378,7 @@ void InitializeConfigData()
     config.shade_support = false;
     config.shade_enable  = false;
     config.serial = "12345600";
-    for ( int i = 0; i < MAX_CHANNELS; i++ ) {
+    for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
       config.channel_name[i]  = "";
       config.shade_runtime[i] = 0;
     }
@@ -417,7 +416,7 @@ void HeartBeat() {
     // cyclic EEPROM commit (does nothing if not dirty) to avoid excessive flash wear
     bool ok = EEPROM.commit();
     if (!ok) {
-      WriteLog("[ERR ] - cyclic EEPROM commit failed");
+      WriteLog("[ERR ] - cyclic EEPROM commit failed", true);
     }
     cnt = 0;
   }

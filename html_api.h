@@ -47,7 +47,7 @@ void html_api() {
       if (server.argName(i) == "mqtt_broker_client_id") config.mqtt_broker_client_id  = urldecode(server.arg(i));
       if (server.argName(i) == "mqtt_broker_username") config.mqtt_broker_username    = urldecode(server.arg(i));
       if (server.argName(i) == "mqtt_broker_password") config.mqtt_broker_password    = urldecode(server.arg(i));
-      if (server.argName(i) == "mqtt_devicetopic") config.mqtt_devicetopic_new               = urldecode(server.arg(i));
+      if (server.argName(i) == "mqtt_devicetopic") config.mqtt_devicetopic_new        = urldecode(server.arg(i));
 
       if (server.argName(i) == "master_msb") config.master_msb = urldecode(server.arg(i));
       if (server.argName(i) == "master_lsb") config.master_lsb = urldecode(server.arg(i));

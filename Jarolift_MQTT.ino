@@ -131,7 +131,7 @@ const char deviceNameShort[] = "JaroliftESP8266";
 void setup()
 {
   InitLog();
-  EEPROM.begin(1320); // EEPROM size needed for config info, see doc/config-data-layout.md - must not exceed 4096 bytes
+  EEPROM.begin(EEPROM_SIZE);  // EEPROM size needed for config info, see doc/config-data-layout.md
   Serial.begin(115200);
 
   // Init the NTP time
