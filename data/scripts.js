@@ -24,7 +24,7 @@ function getEventLog() {
   http.send("cmd=eventlog");
 }
 
-function runShutterCmd(cmd, channel, channel_name) {
+function runShutterCmd(cmd, channel, param) {
   var http = new XMLHttpRequest();
   http.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
@@ -33,7 +33,19 @@ function runShutterCmd(cmd, channel, channel_name) {
   };
   http.open("POST", "api", true);
   http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-  http.send("cmd=" + cmd + "&channel=" + channel + "&channel_name=" + channel_name);
+  http.send("cmd=" + cmd + "&channel=" + channel + "&param=" + param);
+}
+
+function handleCheckbox(cmd, channel, channel_name) {
+  var http = new XMLHttpRequest();
+  http.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      iqwerty.toast.Toast(this.responseText);
+    }
+  };
+  http.open("POST", "api", true);
+  http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+  http.send("cmd=" + cmd + "&channel=" + channel + "&checked=" + channel_name);
 }
 
 function setChannelNameCallback(rowData, rowName) {
@@ -49,42 +61,51 @@ function setShadeRuntimeCallback(rowData, rowName) {
 var setShadeRuntime = {"finishCallback": setShadeRuntimeCallback};
 
 
-function getChannelName(){
+function getShutterCtrl(){
   var http = new XMLHttpRequest();
   http.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
 
       var lines = this.responseText.split('\n');
       var counter = 0;
-      for (var j = 0; j < lines.length; j++) {
-        var result = lines[j].split('=');
-
-        if (result[0] != ""){
-
+      for (let j = 0; j < lines.length; j++) {
+        // line format for params: "chn=a;name=b;upDown=c;shade=d"
+        let params = lines[j].split(';');
+        if (params[0] != "") {
           //get channel Id and get configured status
-          var channel_id = (result[0].split('_'))[1];
+          var channel_id = (params[0].split('='))[1];
           var configured = true;
 
           // set alternative display name if channel name is empty
-          if (result[1] == ""){
+          let channel_name = (params[1].split('='))[1];
+          if (channel_name == ""){
             configured = false;
-            result[1] = "Channel " + channel_id;
-          }else{
+            channel_name = "Channel " + channel_id;
+          } else {
             counter++;
           }
+
+          // get checkbox init value from flags
+          let auto_updown_checked = ((params[2].split('='))[1] == '1') ? 'checked' : '';
+          let auto_shade_checked  = ((params[3].split('='))[1] == '1') ? 'checked' : '';
 
           // create new element
           var element = document.createElement("div");
           element.setAttribute("name", "shuttercontrol");
           // add HTML stuff to the element
           element.innerHTML = `
-            <table><tr id=` + channel_id + `> <td> Ch-` + channel_id + ` </td> <td data-inlineType="text" data-inlineName="channel_name" style="font-size: 2.3rem;">` + result[1] + `</td><td data-inlineType="doneButton">&nbsp;&nbsp;<a href="javascript:void(0)" class="siimple-link" onclick="inlineEdit('` + channel_id + `', setChannelName)">edit</a></td></tr></table>
+            <table>
+              <tr id=` + channel_id + `>
+                <td style="font-size: 1.5rem;">` + channel_name + `</td>
+              </tr>
+            </table>
             <div class="siimple-grid-row">
               <div class="siimple-grid-col siimple-grid-col--2 siimple-grid-col-sm--12" align=center><div style="width: 100%; padding: 3px; margin-bottom: 2px; margin-top: 2px;" onclick="runShutterCmd('UP',       ` + channel_id  + `)" class="siimple-btn siimple-btn--navy">UP</div></div>
               <div class="siimple-grid-col siimple-grid-col--2 siimple-grid-col-sm--12" align=center><div style="width: 100%; padding: 3px; margin-bottom: 2px; margin-top: 2px;" onclick="runShutterCmd('STOP',     ` + channel_id  + `)" class="siimple-btn siimple-btn--navy">STOP</div></div>
               <div class="siimple-grid-col siimple-grid-col--2 siimple-grid-col-sm--12" align=center><div style="width: 100%; padding: 3px; margin-bottom: 2px; margin-top: 2px;" onclick="runShutterCmd('DOWN',     ` + channel_id  + `)" class="siimple-btn siimple-btn--navy">DOWN</div></div>
               <div class="siimple-grid-col siimple-grid-col--2 siimple-grid-col-sm--12" align=center><div style="width: 100%; padding: 3px; margin-bottom: 2px; margin-top: 2px;" onclick="runShutterCmd('SHADE',    ` + channel_id  + `)" class="siimple-btn siimple-btn--navy">SHADE</div></div>
-            </div>
+              <div class="siimple-grid-col siimple-grid-col--2 siimple-grid-col-sm--12" align=center><div style="width: 100%; padding: 3px; margin-bottom: 2px; margin-top: 2px;"><input type="checkbox" onclick="handleCheckbox('checkAutoUpdown', ` + channel_id  + `, this.checked);" id='auto_updown'` + channel_id + ` ` + auto_updown_checked + `><label for='auto_updown'` + channel_id + `>  auto up/down</label></div></div>
+              <div class="siimple-grid-col siimple-grid-col--2 siimple-grid-col-sm--12" align=center><div style="width: 100%; padding: 3px; margin-bottom: 2px; margin-top: 2px;"><input type="checkbox" onclick="handleCheckbox('checkAutoShade',  ` + channel_id  + `, this.checked);" id='auto_shade'`  + channel_id + ` ` + auto_shade_checked  + `><label for='auto_shade'`  + channel_id + `>  auto shade</label></div></div>
             <br><br>
           `;
           // hide element if it is not yet configured
@@ -103,10 +124,10 @@ function getChannelName(){
   };
   http.open("POST", "api", true);
   http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-  http.send("cmd=get channel name");
+  http.send("cmd=get shutter ctrl");
 }
 
-function getShadeRuntime(){
+function getShutterCfg(){
   var http = new XMLHttpRequest();
   http.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
@@ -114,28 +135,40 @@ function getShadeRuntime(){
       var lines = this.responseText.split('\n');
       var counter = 0;
       for (var j = 0; j < lines.length; j++) {
-        var result = lines[j].split('=');
-
-        if (result[0] != ""){
-
+        // line format for params: "chn=a;name=b;time=c"
+        let params = lines[j].split(';');
+        if (params[0] != "") {
           //get channel Id and get configured status
-          var channel_id = (result[0].split('_'))[1];
+          var channel_id = (params[0].split('='))[1];
           var configured = true;
 
           // set alternative display name if channel name is empty
-          if (result[1] == ""){
+          let channel_name = (params[1].split('='))[1];
+          if (channel_name == ""){
             configured = false;
-            result[1] = "Channel " + channel_id;
-          }else{
+            channel_name = "Channel " + channel_id;
+          } else {
             counter++;
           }
+
+          // get shuttern runtime for shading
+          let runtime = (params[2].split('='))[1];
 
           // create new element
           var element = document.createElement("div");
           element.setAttribute("name", "shuttercontrol");
           // add HTML stuff to the element
           element.innerHTML = `
-            <table><tr id=` + channel_id + `> <td> Ch-` + channel_id + ` shade runtime [1/10s]: </td> <td data-inlineType="text" data-inlineName="shade_runtime" style="font-size: 1.2rem;">` + result[1] + `</td><td data-inlineType="doneButton">&nbsp;&nbsp;<a href="javascript:void(0)" class="siimple-link" onclick="inlineEdit('` + channel_id + `', setShadeRuntime)">edit</a></td></tr></table>
+            <table>
+              <tr id=` + channel_id + `>
+                <td>Ch-` + channel_id + ` name:</td>
+                <td data-inlineType="text" data-inlineName="channel_name" style="font-size: 1.5rem;">` + channel_name + `</td>
+                <td data-inlineType="doneButton">&nbsp;&nbsp;<a href="javascript:void(0)" class="siimple-link" onclick="inlineEdit('` + channel_id + `', setChannelName)">edit</a></td>
+                <td>shade runtime [1/10s]:</td>
+                <td data-inlineType="text" data-inlineName="shade_runtime" style="font-size: 1.5rem;">` + runtime + `</td>
+                <td data-inlineType="doneButton">&nbsp;&nbsp;<a href="javascript:void(0)" class="siimple-link" onclick="inlineEdit('` + channel_id + `', setShadeRuntime)">edit</a></td>
+              </tr>
+            </table>
             <div class="siimple-grid-col siimple-grid-col--2 siimple-grid-col-sm--12" align=center><div style="width: 100%; padding: 3px; margin-bottom: 2px; margin-top: 2px;" onclick="runShutterCmd('SETSHADE', ` + channel_id  + `)" class="siimple-btn siimple-btn--grey">SET SHADE</div></div>
             <div class="siimple-grid-col siimple-grid-col--2 siimple-grid-col-sm--12" align=center><div style="width: 100%; padding: 3px; margin-bottom: 2px; margin-top: 2px;" onclick="runShutterCmd('LEARN',    ` + channel_id  + `)" class="siimple-btn siimple-btn--grey">LEARN</div></div>
             <div class="siimple-grid-row"></div>
@@ -157,7 +190,7 @@ function getShadeRuntime(){
   };
   http.open("POST", "api", true);
   http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-  http.send("cmd=get shade runtime");
+  http.send("cmd=get shutter cfg");
 }
 
 function getConfig(){

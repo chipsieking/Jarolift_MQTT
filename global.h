@@ -73,38 +73,42 @@ boolean mqtt_send_radio_receive_all = true;
 
 #define MAX_CHANNELS  16
 struct strConfig {
-  uint16_t cfgVersion;
-  String  ssid;
-  String  password;
-  byte    ip[4];
-  byte    netmask[4];
-  byte    gateway[4];
-  boolean dhcp;
-  byte    mqtt_broker_addr[4];
-  String  mqtt_broker_port;
-  String  mqtt_broker_client_id;
-  String  mqtt_broker_username;
-  String  mqtt_broker_password;
-  String  mqtt_devicetopic;
-  String  master_msb;
-  String  master_lsb;
-  unsigned long ulMasterMSB;
-  unsigned long ulMasterLSB;
-  boolean learn_mode;         // If set to true, regular learn method is used (up+down, followed by stop).
-  // If set to false another method for older versions of Jarolift motors is used.
-  boolean shade_support;      // If set to true, built-in shade mode is used. Otherwise, shading is emulated by DOWN & STOP commands with runtime.
-  boolean shade_enable;       // If set to true, shading is enabled & shutters move to the shade position at the configured time.
-  uint16_t shade_runtime[MAX_CHANNELS];
-  String  serial;             // starting serial number as string
-  uint32_t serial_number;     // starting serial number as integer
-  String  channel_name[MAX_CHANNELS];
+  uint16_t  cfgVersion;
+  String    ssid;
+  String    password;
+  byte      ip[4];
+  byte      netmask[4];
+  byte      gateway[4];
+  boolean   dhcp;
+  byte      mqtt_broker_addr[4];
+  String    mqtt_broker_port;
+  String    mqtt_broker_client_id;
+  String    mqtt_broker_username;
+  String    mqtt_broker_password;
+  String    mqtt_devicetopic;
+  String    master_msb;
+  String    master_lsb;
+  uint32_t  ulMasterMSB;
+  uint32_t  ulMasterLSB;
+  boolean   learn_mode;     // If set to true, regular learn method is used (up+down, followed by stop), otherwise another method for older versions of Jarolift motors is used.
+  boolean   shade_support;  // If set to true, built-in shade mode is used. Otherwise, shading is emulated by DOWN & STOP commands with runtime.
+  boolean   shade_enable;   // If set to true, shading is enabled & shutters move to the shade position at the configured time.
+  uint16_t  shade_runtime[MAX_CHANNELS];
+  byte      flags[MAX_CHANNELS];
+  String    serial;         // starting serial number as string
+  uint32_t  serial_number;  // starting serial number as integer
+  String    channel_name[MAX_CHANNELS];
   // temporary values, for web ui, not to store in EEPROM
-  String mqtt_devicetopic_new = ""; // needed to figure out if the devicetopic has been changed
-  String new_serial = "";
-  String new_devicecounter = "";
-  boolean set_and_generate_serial = false;
-  boolean set_devicecounter = false;
+  String    mqtt_devicetopic_new = ""; // needed to figure out if the devicetopic has been changed
+  String    new_serial = "";
+  String    new_devicecounter = "";
+  boolean   set_and_generate_serial = false;
+  boolean   set_devicecounter = false;
 } config;
+
+// bitmasks for channel flags
+const byte CHANNEL_FLAG_AUTO_UPDOWN = 0x01;
+const byte CHANNEL_FLAG_AUTO_SHADE  = 0x02;
 
 // API for sending shutter commands
 enum ShutterCmd {
@@ -184,8 +188,7 @@ void ConfigureWifi()
 //################################################################
 // Function to write newest version of configuration into EEPROM
 //################################################################
-void WriteConfig()
-{
+void WriteConfig() {
   WriteLog("[INFO] - write config to EEPROM", true);
   EEPROM.write(120, 'C');
   EEPROM.write(121, 'f');
@@ -233,11 +236,26 @@ void WriteConfig()
   for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
     WriteStringToEEPROM(500 + i * 50, config.channel_name[i]);
     WriteStringToEEPROM(525 + i * 50, String(config.shade_runtime[i]));
+    EEPROM.write(531 + i * 50, config.flags[i]);
   }
 
   EEPROM.commit();
   delay(1000);
 } // void WriteConfig
+
+void WriteConfigShadeRuntime(unsigned channel) {
+  // helper function for writing shade runtime without committing to EEPROM on each change
+  if (channel < MAX_CHANNELS) {
+    WriteStringToEEPROM(525 + channel * 50, String(config.shade_runtime[channel]));
+  }
+}
+
+void WriteChannelFlags(unsigned channel) {
+  // helper function for writing channel flags without committing to EEPROM on each click
+  if (channel < MAX_CHANNELS) {
+    EEPROM.write(531 + channel * 50, config.flags[channel]);
+  }
+}
 
 //####################################################################
 // Function to read configuration from EEPROM
@@ -299,6 +317,7 @@ boolean ReadConfig() {
     for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
       config.channel_name[i]  = ReadStringFromEEPROM(500 + i * 50, 25);
       config.shade_runtime[i] = ReadStringFromEEPROM(525 + i * 50, 6).toInt();
+      config.flags[i]         = EEPROM.read(531 + i * 50);
     }
   }
   if (config.cfgVersion == 2) {
@@ -381,6 +400,7 @@ void InitializeConfigData()
     for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
       config.channel_name[i]  = "";
       config.shade_runtime[i] = 0;
+      config.flags[i]         = 0;
     }
     WriteConfig();
     WriteLog("[INFO] - default config applied", true);

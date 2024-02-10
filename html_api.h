@@ -23,31 +23,34 @@
 // API call to get data or execute commands via WebIf
 //####################################################################
 void html_api() {
-  if (debug_webui) Serial.printf("html_api server.args()=%d \n", server.args());
+  if (debug_webui) {
+    Serial.printf("html_api server.args()=%d\n", server.args());
+  }
   if (server.args() > 0 ) {
     // get server args from HTML POST
-    String cmd = "";
-    unsigned channel = MAX_CHANNELS;  // needs to be overridden to become valid
-    String channel_name = "";
-    if (debug_webui) {
-      for ( uint8_t i = 0; i < server.args(); i++ ) {
-        Serial.printf("server.argName(%d) == %s\n", i, server.argName(i).c_str());
-        Serial.printf(" urldecode: %s\n", urldecode(server.arg(i)).c_str());
+    String    cmd = "";
+    unsigned  channel = MAX_CHANNELS;  // needs to be overridden to become valid
+    String    param = "";
+    bool      checked = false;
+    for (unsigned i = 0; i < server.args(); ++i) {
+      if (debug_webui) {
+        Serial.printf("server.argName(%d): '%s'\n", i, server.argName(i).c_str());
+        Serial.printf(" urldecode: '%s'\n", urldecode(server.arg(i)).c_str());
       }
-    }
-    for ( uint8_t i = 0; i < server.args(); i++ ) {
-      if (server.argName(i) == "cmd") cmd         = urldecode(server.arg(i));
+      if (server.argName(i) == "cmd")     cmd     = urldecode(server.arg(i));
       if (server.argName(i) == "channel") channel = server.arg(i).toInt();
-      if (server.argName(i) == "channel_name") channel_name = urldecode(server.arg(i));
 
-      if (server.argName(i) == "ssid") config.ssid                           = urldecode(server.arg(i));
-      if (server.argName(i) == "password") config.password                   = urldecode(server.arg(i));
+      if (server.argName(i) == "param")   param   = urldecode(server.arg(i));
+      if (server.argName(i) == "checked") checked = (urldecode(server.arg(i)) == "true");
 
-      if (server.argName(i) == "mqtt_broker_port") config.mqtt_broker_port            = urldecode(server.arg(i));
+      if (server.argName(i) == "ssid")      config.ssid     = urldecode(server.arg(i));
+      if (server.argName(i) == "password")  config.password = urldecode(server.arg(i));
+
+      if (server.argName(i) == "mqtt_broker_port")      config.mqtt_broker_port       = urldecode(server.arg(i));
       if (server.argName(i) == "mqtt_broker_client_id") config.mqtt_broker_client_id  = urldecode(server.arg(i));
-      if (server.argName(i) == "mqtt_broker_username") config.mqtt_broker_username    = urldecode(server.arg(i));
-      if (server.argName(i) == "mqtt_broker_password") config.mqtt_broker_password    = urldecode(server.arg(i));
-      if (server.argName(i) == "mqtt_devicetopic") config.mqtt_devicetopic_new        = urldecode(server.arg(i));
+      if (server.argName(i) == "mqtt_broker_username")  config.mqtt_broker_username   = urldecode(server.arg(i));
+      if (server.argName(i) == "mqtt_broker_password")  config.mqtt_broker_password   = urldecode(server.arg(i));
+      if (server.argName(i) == "mqtt_devicetopic")      config.mqtt_devicetopic_new   = urldecode(server.arg(i));
 
       if (server.argName(i) == "master_msb") config.master_msb = urldecode(server.arg(i));
       if (server.argName(i) == "master_lsb") config.master_lsb = urldecode(server.arg(i));
@@ -105,27 +108,41 @@ void html_api() {
             values += web_log_message[msg_ptr] + "\n";
           }
         }
-        server.send ( 200, "text/plain", values );
+        server.send(200, "text/plain", values);
       } else if (cmd == "save") {
         // handled in main loop
         web_cmd = cmd;
       } else if (cmd == "restart") {
         // handled in main loop
         web_cmd = cmd;
-      } else if (cmd == "get channel name") {
+      } else if (cmd == "get shutter ctrl") {
         String values = "";
         for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
-          values += "channel_" + String(i) + "=" + config.channel_name[i] + "\n";
+          values += "chn="    + String(i) + ";";
+          values += "name="   + config.channel_name[i] + ";";
+          values += "upDown=" + String((config.flags[i] & CHANNEL_FLAG_AUTO_UPDOWN) != 0) + ";";
+          values += "shade="  + String((config.flags[i] & CHANNEL_FLAG_AUTO_SHADE)  != 0) + "\n";
         }
-        server.send ( 200, "text/plain", values );
-      } else if (cmd == "get shade runtime") {
+        if (debug_webui) {
+          Serial.printf("'%s'\n", values.c_str());
+        }
+        server.send(200, "text/plain", values);
+      } else if (cmd == "get shutter cfg") {
         String values = "";
+//        for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
+//          // runtime is in [ms], change to [1/10s] for web display
+//          values += "channel_" + String(i) + "=" + config.shade_runtime[i] / 100 + "\n";
+//        }
         for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
-          // runtime is in [ms], change to [1/10s] for web display
-          values += "channel_" + String(i) + "=" + config.shade_runtime[i] / 100 + "\n";
+          values += "chn="  + String(i) + ";";
+          values += "name=" + config.channel_name[i] + ";";
+          // shutter runtime cfg for shading is in [ms], change to [1/10s] for proper web display
+          values += "time=" + String(config.shade_runtime[i] / 100) + "\n";
         }
-        server.send ( 200, "text/plain", values );
-
+        if (debug_webui) {
+          Serial.printf("'%s'\n", values.c_str());
+        }
+        server.send(200, "text/plain", values);
       } else if (cmd == "get config") {
         String values = "";
         values += "ssid=" + config.ssid + "\n";
@@ -178,35 +195,56 @@ void html_api() {
         values += "devicecounter=" + (String)devcnt + "\n";
         values += "checkbox=set_devicecounter=0\n";
         values += "text=versionstr=Firmware " + String(PROGRAM_VERSION) + "\n";
-        server.send ( 200, "text/plain", values );
-
-      } else if ( cmd == "set channel name") {
+        server.send(200, "text/plain", values);
+      } else if (cmd == "set channel name") {
         if (channel < MAX_CHANNELS) {
-          config.channel_name[channel] = channel_name;
+          config.channel_name[channel] = param;
           WriteConfig();
-          String status_text = "Updating channel description to '" + channel_name + "'.";
-          server.send ( 200, "text/plain", status_text );
+          String status_text = "Updating channel " + String(channel) + " name to '" + param + "'.";
+          server.send(200, "text/plain", status_text);
         }
-      } else if ( cmd == "set shade runtime") {
+      } else if (cmd == "set shade runtime") {
         if (channel < MAX_CHANNELS) {
-          // use channel_name for carrying runtime, runtime is in [1/10s] -> normalize to [ms]
-          config.shade_runtime[channel] = channel_name.toInt() * 100;
-          WriteConfig();
+          // use param for carrying runtime, runtime is in [1/10s] -> normalize to [ms]
+          config.shade_runtime[channel] = param.toInt() * 100;
+          WriteConfigShadeRuntime(channel);
           String status_text = "Updating channel " + String(channel) + " shade runtime to '" + String(config.shade_runtime[channel]) + "'.";
-          server.send ( 200, "text/plain", status_text );
+          server.send(200, "text/plain", status_text);
+        }
+      } else if (cmd == "checkAutoUpdown") {
+        if (channel < MAX_CHANNELS) {
+          if (checked) {
+            config.flags[channel] |= CHANNEL_FLAG_AUTO_UPDOWN;
+          } else {
+            config.flags[channel] &= CHANNEL_FLAG_AUTO_UPDOWN;
+          }
+          WriteChannelFlags(channel);
+          String status_text = "Updating channel " + String(channel) + " auto up/down to '" + checked + "'.";
+          server.send(200, "text/plain", status_text);
+        }
+      } else if (cmd == "checkAutoShade") {
+        if (channel < MAX_CHANNELS) {
+          if (checked) {
+            config.flags[channel] |= CHANNEL_FLAG_AUTO_SHADE;
+          } else {
+            config.flags[channel] &= CHANNEL_FLAG_AUTO_SHADE;
+          }
+          WriteChannelFlags(channel);
+          String status_text = "Updating channel " + String(channel) + " auto shade to '" + checked + "'.";
+          server.send(200, "text/plain", status_text);
         }
       } else {
         if (channel < MAX_CHANNELS) {
           web_cmd_channel = channel;
           web_cmd = cmd;
           String status_text = "Running command '" + cmd + "' for channel " + channel + ".";
-          server.send ( 200, "text/plain", status_text );
+          server.send(200, "text/plain", status_text);
         }
       }
 
     } else {
       String status_text = "No command to execute!";
-      server.send ( 200, "text/plain", status_text );
+      server.send(200, "text/plain", status_text);
     }
     delay(100);
   }
