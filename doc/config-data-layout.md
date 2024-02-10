@@ -51,22 +51,22 @@ Decimal Hex     in Byte     Description
 375     0x177   25          mqtt_broker_client_id
 400     0x190   25          mqtt_broker_username
 450     0x1c2   25          mqtt_broker_password
-500     0x1f4   25 + 6      channel_name[0] + shade runtime
-550     0x226   25 + 6      channel_name[1] + shade runtime
-600     0x258   25 + 6      channel_name[2] + shade runtime
-650     0x28a   25 + 6      channel_name[3] + shade runtime
-700     0x2bc   25 + 6      channel_name[4] + shade runtime
-750     0x2ee   25 + 6      channel_name[5] + shade runtime
-800     0x320   25 + 6      channel_name[6] + shade runtime
-850     0x352   25 + 6      channel_name[7] + shade runtime
-900     0x384   25 + 6      channel_name[8] + shade runtime
-950     0x3b6   25 + 6      channel_name[9] + shade runtime
-1000    0x3e8   25 + 6      channel_name[10] + shade runtime
-1050    0x41a   25 + 6      channel_name[11] + shade runtime
-1100    0x44c   25 + 6      channel_name[12] + shade runtime
-1150    0x47e   25 + 6      channel_name[13] + shade runtime
-1200    0x4b0   25 + 6      channel_name[14] + shade runtime
-1250    0x4e2   25 + 6      channel_name[15] + shade runtime
+500     0x1f4   25 + 6 + 1  channel_name[0] + shade runtime + flags
+550     0x226   25 + 6 + 1  channel_name[1] + shade runtime + flags
+600     0x258   25 + 6 + 1  channel_name[2] + shade runtime + flags
+650     0x28a   25 + 6 + 1  channel_name[3] + shade runtime + flags
+700     0x2bc   25 + 6 + 1  channel_name[4] + shade runtime + flags
+750     0x2ee   25 + 6 + 1  channel_name[5] + shade runtime + flags
+800     0x320   25 + 6 + 1  channel_name[6] + shade runtime + flags
+850     0x352   25 + 6 + 1  channel_name[7] + shade runtime + flags
+900     0x384   25 + 6 + 1  channel_name[8] + shade runtime + flags
+950     0x3b6   25 + 6 + 1  channel_name[9] + shade runtime + flags
+1000    0x3e8   25 + 6 + 1  channel_name[10] + shade runtime + flags
+1050    0x41a   25 + 6 + 1  channel_name[11] + shade runtime + flags
+1100    0x44c   25 + 6 + 1  channel_name[12] + shade runtime + flags
+1150    0x47e   25 + 6 + 1  channel_name[13] + shade runtime + flags
+1200    0x4b0   25 + 6 + 1  channel_name[14] + shade runtime + flags
+1250    0x4e2   25 + 6 + 1  channel_name[15] + shade runtime + flags
 1300    0x514   20          mqtt_devicetopic
 ```
 
