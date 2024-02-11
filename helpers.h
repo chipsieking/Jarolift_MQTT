@@ -19,52 +19,35 @@
 #define HELPERS_H
 
 
-
-
 //####################################################################
 // Check if the Value is between 0-255
 //####################################################################
-boolean checkRange(String Value)
-{
-  if (Value.toInt() < 0 || Value.toInt() > 255)
-  {
-    return false;
-  }
-  else
-  {
-    return true;
-  }
-} // boolean checkRange
-
+inline boolean checkRange(String str) {
+  return ((str.toInt() >= 0) && (str.toInt() <= 255));
+}
 
 //####################################################################
-void WriteStringToEEPROM(int beginaddress, String string)
-{
-  char  charBuf[string.length() + 1];
-  string.toCharArray(charBuf, string.length() + 1);
-  for (uint16_t t =  0; t < sizeof(charBuf); t++)
-  {
-    EEPROM.write(beginaddress + t, charBuf[t]);
+void WriteStringToEEPROM(unsigned addr, String str) {
+  char buf[str.length() + 1];
+  str.toCharArray(buf, sizeof(buf));
+  for (unsigned i = 0; i < str.length(); ++i) {
+    // do not store trailing \0 in EEPROM
+    EEPROM.write(addr + i, buf[i]);
   }
-} // void WriteStringToEEPROM
+}
 
 //####################################################################
-String  ReadStringFromEEPROM(int beginaddress, int MaxLen)
-{
-  byte counter = 0;
-  char rChar;
-  String retString = "";
-  while (1)
-  {
-    rChar = EEPROM.read(beginaddress + counter);
-    if (rChar == 0) break;
-    if (counter > MaxLen) break;
-    counter++;
-    retString.concat(rChar);
-
+String ReadStringFromEEPROM(unsigned addr, unsigned maxLen) {
+  unsigned i = 0;
+  char chr;
+  String str = "";
+  while (i < maxLen) {
+    chr = EEPROM.read(addr + i++);
+    if (chr == 0) break;
+    str.concat(chr);
   }
-  return retString;
-} // String  ReadStringFromEEPROM
+  return str;
+}
 
 //####################################################################
 void EEPROMWritelong(int address, long value)
@@ -79,7 +62,7 @@ void EEPROMWritelong(int address, long value)
   EEPROM.write(address + 1, three);
   EEPROM.write(address + 2, two);
   EEPROM.write(address + 3, one);
-} // void EEPROMWritelong
+}
 
 //####################################################################
 long EEPROMReadlong(long address)
@@ -92,13 +75,12 @@ long EEPROMReadlong(long address)
 
   // Return the recomposed long by using bitshift.
   return ((four << 0) & 0xFF) + ((three << 8) & 0xFFFF) + ((two << 16) & 0xFFFFFF) + ((one << 24) & 0xFFFFFFFF);
-} // long EEPROMReadlong
+}
 
 //####################################################################
 // convert a single hex digit character to its integer value (from https://code.google.com/p/avr-netino/)
 //####################################################################
-unsigned char h2int(char c)
-{
+unsigned char h2int(char c) {
   if (c >= '0' && c <= '9') {
     return ((unsigned char)c - '0');
   }
@@ -109,27 +91,25 @@ unsigned char h2int(char c)
     return ((unsigned char)c - 'A' + 10);
   }
   return (0);
-} // unsigned char h2int
+}
 
 //####################################################################
-String urldecode(String input) // (based on https://code.google.com/p/avr-netino/)
-{
+String urldecode(String input) { // (based on https://code.google.com/p/avr-netino/)
   char c;
-  String ret = "";
+  String str = "";
 
-  for (byte t = 0; t < input.length(); t++)
-  {
-    c = input[t];
+  for (unsigned i = 0; i < input.length(); ++i) {
+    c = input[i];
     if (c == '+') c = ' ';
     if (c == '%') {
-      t++;
-      c = input[t];
-      t++;
-      c = (h2int(c) << 4) | h2int(input[t]);
+      i++;
+      c = input[i];
+      i++;
+      c = (h2int(c) << 4) | h2int(input[i]);
     }
-    ret.concat(c);
+    str.concat(c);
   }
-  return ret;
-} // String urldecode
+  return str;
+}
 
 #endif

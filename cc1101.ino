@@ -1,4 +1,4 @@
-void InitCC1101(){
+void InitCC1101() {
   // initialize the transceiver chip
   WriteLog("[INFO] - initializing the CC1101 Transceiver. If you get stuck here, it is probably not connected.", true);
   cc1101.init();
@@ -7,7 +7,7 @@ void InitCC1101(){
   cc1101.disableAddressCheck();   // if not specified, will only display "packet received"
 }
 
-void CC1101Loop(){
+void CC1101Loop() {
   if (iset) {
     cc1101.cmdStrobe(CC1101_SCAL);
     delay(50);
@@ -16,11 +16,10 @@ void CC1101Loop(){
     delay(200);
     attachInterrupt(RX_PORT, radio_rx_measure, CHANGE); // Interrupt on change of RX_PORT
   }
-
   CheckRxBuffer();
 }
 
-void CheckRxBuffer(){
+void CheckRxBuffer() {
   // Check if RX buffer is full
   if ((lowbuf[0] > 3650) && (lowbuf[0] < 4300) && (pbwrite >= 65) && (pbwrite <= 75)) {     // Decode received data...
     if (debug_log_radio_receive_all)
@@ -28,7 +27,6 @@ void CheckRxBuffer(){
     iset = true;
     ReadRSSI();
     pbwrite = 0;
-
 
     for (int i = 0; i <= 31; i++) {                          // extracting Hopcode
       if (lowbuf[i + 1] < hibuf[i + 1]) {
@@ -101,21 +99,19 @@ void CheckRxBuffer(){
 //####################################################################
 // Receive Routine
 //####################################################################
-void IRAM_ATTR radio_rx_measure()
-{
+void IRAM_ATTR radio_rx_measure() {
   static long LineUp, LineDown, Timeout;
   long LowVal, HighVal;
   int pinstate = digitalRead(RX_PORT); // Read current pin state
   if (micros() - Timeout > 3500) {
     pbwrite = 0;
   }
-  if (pinstate)                       // pin is now HIGH, was low
-  {
+  if (pinstate) {
+    // pin is now HIGH, was low
     LineUp = micros();                // Get actual time in LineUp
     LowVal = LineUp - LineDown;       // calculate the LOW pulse time
     if (LowVal < debounce) return;
-    if ((LowVal > 300) && (LowVal < 4300))
-    {
+    if ((LowVal > 300) && (LowVal < 4300)) {
       if ((LowVal > 3650) && (LowVal < 4300)) {
         Timeout = micros();
         pbwrite = 0;
@@ -128,14 +124,11 @@ void IRAM_ATTR radio_rx_measure()
         Timeout = micros();
       }
     }
-  }
-  else
-  {
+  } else {
     LineDown = micros();          // line went LOW after being HIGH
     HighVal = LineDown - LineUp;  // calculate the HIGH pulse time
     if (HighVal < debounce) return;
-    if ((HighVal > 300) && (HighVal < 1000))
-    {
+    if ((HighVal > 300) && (HighVal < 1000)) {
       hibuf[pbwrite] = HighVal;
     }
   }
@@ -144,7 +137,7 @@ void IRAM_ATTR radio_rx_measure()
 //####################################################################
 // Generation of the encrypted message (Hopcode)
 //####################################################################
-void keeloq () {
+void keeloq() {
   Keeloq k(device_key_msb, device_key_lsb);
   unsigned int result = (disc << 16) | devcnt;  // Append counter value to discrimination value
   dec = k.encrypt(result);
@@ -155,8 +148,8 @@ void keeloq () {
 // Here normal key-generation is used according to 00745a_c.PDF Appendix G.
 // https://github.com/hnhkj/documents/blob/master/KEELOQ/docs/AN745/00745a_c.pdf
 //####################################################################
-void keygen () {
-  Keeloq k(config.ulMasterMSB, config.ulMasterLSB);
+void keygen() {
+  Keeloq k(config.master_msb_num, config.master_lsb_num);
   uint64_t keylow = new_serial | 0x20000000;
   unsigned long enc = k.decrypt(keylow);
   device_key_lsb  = enc;              // Stores LSB devicekey 16Bit
@@ -173,25 +166,20 @@ void keygen () {
 //####################################################################
 void radio_tx(int repetitions) {
   pack = (button << 60) | (new_serial << 32) | dec;
-  for (int a = 0; a < repetitions; a++)
-  {
+  for (int a = 0; a < repetitions; a++) {
     digitalWrite(TX_PORT, LOW);      // CC1101 in TX Mode+
     delayMicroseconds(1150);
     radio_tx_frame(13);              // change 28.01.2018 default 10
     delayMicroseconds(3500);
 
     for (int i = 0; i < 64; i++) {
-
       int out = ((pack >> i) & 0x1); // Bitmask to get MSB and send it first
-      if (out == 0x1)
-      {
+      if (out == 0x1) {
         digitalWrite(TX_PORT, LOW);  // Simple encoding of bit state 1
         delayMicroseconds(Lowpulse);
         digitalWrite(TX_PORT, HIGH);
         delayMicroseconds(Highpulse);
-      }
-      else
-      {
+      } else {
         digitalWrite(TX_PORT, LOW);  // Simple encoding of bit state 0
         delayMicroseconds(Highpulse);
         digitalWrite(TX_PORT, HIGH);
@@ -210,15 +198,12 @@ void radio_tx(int repetitions) {
 void radio_tx_group_h() {
   for (int i = 0; i < 8; i++) {
     int out = ((disc_h >> i) & 0x1); // Bitmask to get MSB and send it first
-    if (out == 0x1)
-    {
+    if (out == 0x1) {
       digitalWrite(TX_PORT, LOW);    // Simple encoding of bit state 1
       delayMicroseconds(Lowpulse);
       digitalWrite(TX_PORT, HIGH);
       delayMicroseconds(Highpulse);
-    }
-    else
-    {
+    } else {
       digitalWrite(TX_PORT, LOW);    // Simple encoding of bit state 0
       delayMicroseconds(Highpulse);
       digitalWrite(TX_PORT, HIGH);
@@ -242,8 +227,8 @@ void radio_tx_frame(int l) {
 //####################################################################
 // Calculate device code from received serial number
 //####################################################################
-void rx_keygen () {
-  Keeloq k(config.ulMasterMSB, config.ulMasterLSB);
+void rx_keygen() {
+  Keeloq k(config.master_msb_num, config.master_lsb_num);
   uint32_t keylow = rx_serial | 0x20000000;
   unsigned long enc = k.decrypt(keylow);
   rx_device_key_lsb  = enc;        // Stores LSB devicekey 16Bit
@@ -257,7 +242,7 @@ void rx_keygen () {
 //####################################################################
 // Decoding of the hopping code
 //####################################################################
-void rx_decoder () {
+void rx_decoder() {
   Keeloq k(rx_device_key_msb, rx_device_key_lsb);
   unsigned int result = rx_hopcode;
   decoded = k.decrypt(result);
@@ -272,18 +257,14 @@ void rx_decoder () {
 //####################################################################
 // calculate RSSI value (Received Signal Strength Indicator)
 //####################################################################
-void ReadRSSI()
-{
+void ReadRSSI() {
   byte rssi = 0;
   rssi = (cc1101.readReg(CC1101_RSSI, CC1101_STATUS_REGISTER));
-  if (rssi >= 128)
-  {
+  if (rssi >= 128) {
     value = 255 - rssi;
     value /= 2;
     value += 74;
-  }
-  else
-  {
+  } else {
     value = rssi / 2;
     value += 74;
   }
@@ -298,8 +279,7 @@ void enterrx() {
   cc1101.setRxState();
   delay(2);
   rx_time = micros();
-  while (((marcState = cc1101.readStatusReg(CC1101_MARCSTATE)) & 0x1F) != 0x0D )
-  {
+  while (((marcState = cc1101.readStatusReg(CC1101_MARCSTATE)) & 0x1F) != 0x0D) {
     if (micros() - rx_time > 50000) break; // Quit when marcState does not change...
   }
 } // void enterrx
@@ -311,8 +291,7 @@ void entertx() {
   cc1101.setTxState();
   delay(2);
   rx_time = micros();
-  while (((marcState = cc1101.readStatusReg(CC1101_MARCSTATE)) & 0x1F) != 0x13 && 0x14 && 0x15)
-  {
+  while (((marcState = cc1101.readStatusReg(CC1101_MARCSTATE)) & 0x1F) != 0x13 && 0x14 && 0x15) {
     if (micros() - rx_time > 50000) break; // Quit when marcState does not change...
   }
 } // void entertx

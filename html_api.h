@@ -52,8 +52,8 @@ void html_api() {
       if (server.argName(i) == "mqtt_broker_password")  config.mqtt_broker_password   = urldecode(server.arg(i));
       if (server.argName(i) == "mqtt_devicetopic")      config.mqtt_devicetopic_new   = urldecode(server.arg(i));
 
-      if (server.argName(i) == "master_msb") config.master_msb = urldecode(server.arg(i));
-      if (server.argName(i) == "master_lsb") config.master_lsb = urldecode(server.arg(i));
+      if (server.argName(i) == "master_msb_str") config.master_msb_str = urldecode(server.arg(i));
+      if (server.argName(i) == "master_lsb_str") config.master_lsb_str = urldecode(server.arg(i));
 
       if (server.argName(i) == "ip_0") if (checkRange(server.arg(i)))   config.ip[0] =  server.arg(i).toInt();
       if (server.argName(i) == "ip_1") if (checkRange(server.arg(i)))   config.ip[1] =  server.arg(i).toInt();
@@ -129,10 +129,6 @@ void html_api() {
         server.send(200, "text/plain", values);
       } else if (cmd == "get shutter cfg") {
         String values = "";
-//        for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
-//          // runtime is in [ms], change to [1/10s] for web display
-//          values += "channel_" + String(i) + "=" + config.shade_runtime[i] / 100 + "\n";
-//        }
         for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
           values += "chn="  + String(i) + ";";
           values += "name=" + config.channel_name[i] + ";";
@@ -173,8 +169,8 @@ void html_api() {
         values += "mqtt_broker_password=" + config.mqtt_broker_password + "\n";
         values += "mqtt_broker_client_id=" + config.mqtt_broker_client_id + "\n";
         values += "mqtt_devicetopic=" + config.mqtt_devicetopic + "\n";
-        values += "master_msb=" + config.master_msb + "\n";
-        values += "master_lsb=" + config.master_lsb + "\n";
+        values += "master_msb_str=" + config.master_msb_str + "\n";
+        values += "master_lsb_str=" + config.master_lsb_str + "\n";
         if (config.learn_mode) {
           values += "checkbox=learn_mode=1\n";
         } else {

@@ -86,15 +86,15 @@ struct strConfig {
   String    mqtt_broker_username;
   String    mqtt_broker_password;
   String    mqtt_devicetopic;
-  String    master_msb;
-  String    master_lsb;
-  uint32_t  ulMasterMSB;
-  uint32_t  ulMasterLSB;
+  String    master_msb_str;
+  String    master_lsb_str;
+  uint32_t  master_msb_num;
+  uint32_t  master_lsb_num;
   boolean   learn_mode;     // If set to true, regular learn method is used (up+down, followed by stop), otherwise another method for older versions of Jarolift motors is used.
   boolean   shade_support;  // If set to true, built-in shade mode is used. Otherwise, shading is emulated by DOWN & STOP commands with runtime.
   boolean   shade_enable;   // If set to true, shading is enabled & shutters move to the shade position at the configured time.
-  uint16_t  shade_runtime[MAX_CHANNELS];
-  byte      flags[MAX_CHANNELS];
+  uint16_t  shade_runtime[MAX_CHANNELS];  // runtime until shutter reaches shade position - used for motors without built-in shade mode
+  byte      flags[MAX_CHANNELS];          // flags for shutter channel settings / features
   String    serial;         // starting serial number as string
   uint32_t  serial_number;  // starting serial number as integer
   String    channel_name[MAX_CHANNELS];
@@ -127,9 +127,8 @@ ShutterCmd string2ShutterCmd(const char* str);
 //####################################################################
 // Initalize log message array with empty strings
 //####################################################################
-void InitLog()
-{
-  for ( int i = 0; i < NUM_WEB_LOG_MESSAGES; i++ ) {
+void InitLog() {
+  for (unsigned i = 0; i < NUM_WEB_LOG_MESSAGES; ++i) {
     web_log_message[i] = "";
   }
 } // void InitLog
@@ -137,8 +136,7 @@ void InitLog()
 //####################################################################
 // Function to write Log to both, serial and Weblog
 //####################################################################
-void WriteLog(String msg, boolean new_line = false)
-{
+void WriteLog(String msg, boolean new_line = false) {
   // web_log_message[] is an array of strings, used as a circular buffer
   // web_log_message_nextfree points to the next free-to-use buffer line
   // when web_log_message_nextfree becomes larger than NUM_WEB_LOG_MESSAGES,
@@ -172,14 +170,12 @@ void WriteLog(String msg, boolean new_line = false)
 //####################################################################
 // Function to connect to Wifi
 //####################################################################
-void ConfigureWifi()
-{
+void ConfigureWifi() {
   WriteLog("[INFO] - WiFi connecting to", false);
   WriteLog(config.ssid, true);
   WiFi.mode(WIFI_STA);
   WiFi.begin (config.ssid.c_str(), config.password.c_str());
-  if (!config.dhcp)
-  {
+  if (!config.dhcp) {
     WiFi.config(IPAddress(config.ip[0], config.ip[1], config.ip[2], config.ip[3] ),  IPAddress(config.gateway[0], config.gateway[1], config.gateway[2], config.gateway[3] ) , IPAddress(config.netmask[0], config.netmask[1], config.netmask[2], config.netmask[3] ));
   }
   wifi_disconnect_log = true;
@@ -221,8 +217,8 @@ void WriteConfig() {
   WriteStringToEEPROM(196, config.password);
 
   WriteStringToEEPROM(262, config.mqtt_broker_port);
-  WriteStringToEEPROM(270, config.master_msb);
-  WriteStringToEEPROM(330, config.master_lsb);
+  WriteStringToEEPROM(270, config.master_msb_str);
+  WriteStringToEEPROM(330, config.master_lsb_str);
   EEPROM.write(350, config.learn_mode);
   EEPROM.write(351, config.shade_support);
   EEPROM.write(352, config.shade_enable);
@@ -280,9 +276,9 @@ boolean ReadConfig() {
   }
   
   WriteLog("version " + (String)config.cfgVersion + " found", true);
-  if (config.cfgVersion <= 2) // read config parts up to version 2
-  {
-    config.dhcp = EEPROM.read(128);
+  if (config.cfgVersion <= 2) {
+    // read config parts up to version 2
+    config.dhcp  = EEPROM.read(128);
     config.ip[0] = EEPROM.read(144);
     config.ip[1] = EEPROM.read(145);
     config.ip[2] = EEPROM.read(146);
@@ -300,19 +296,19 @@ boolean ReadConfig() {
     config.mqtt_broker_addr[2] = EEPROM.read(158);
     config.mqtt_broker_addr[3] = EEPROM.read(159);
 
-    config.ssid = ReadStringFromEEPROM(164, 32);
-    config.password = ReadStringFromEEPROM(196, 64);
-    config.mqtt_broker_port = ReadStringFromEEPROM(262, 6);
-    config.master_msb = ReadStringFromEEPROM(270, 10);
-    config.master_lsb = ReadStringFromEEPROM(330, 10);
-    config.learn_mode = EEPROM.read(350);
-    config.shade_support = EEPROM.read(351);
-    config.shade_enable  = EEPROM.read(352);
-    config.serial = ReadStringFromEEPROM(366, 10);
+    config.ssid             = ReadStringFromEEPROM(164, 32);
+    config.password         = ReadStringFromEEPROM(196, 64);
+    config.mqtt_broker_port = ReadStringFromEEPROM(262, 5);
+    config.master_msb_str   = ReadStringFromEEPROM(270, 10);
+    config.master_lsb_str   = ReadStringFromEEPROM(330, 10);
+    config.learn_mode       = EEPROM.read(350);
+    config.shade_support    = EEPROM.read(351);
+    config.shade_enable     = EEPROM.read(352);
+    config.serial           = ReadStringFromEEPROM(366, 8);
 
-    config.mqtt_broker_client_id = ReadStringFromEEPROM(375, 25);
-    config.mqtt_broker_username = ReadStringFromEEPROM(400, 25);
-    config.mqtt_broker_password = ReadStringFromEEPROM(450, 25);
+    config.mqtt_broker_client_id  = ReadStringFromEEPROM(375, 25);
+    config.mqtt_broker_username   = ReadStringFromEEPROM(400, 25);
+    config.mqtt_broker_password   = ReadStringFromEEPROM(450, 25);
 
     for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
       config.channel_name[i]  = ReadStringFromEEPROM(500 + i * 50, 25);
@@ -349,20 +345,20 @@ boolean ReadConfig() {
     // Serial is 28 bits.
     // string serial stores only highest 24 bits,
     // remove lowest 4 bits with a shift operation
-    char serialNumBuffer[11];
-    snprintf(serialNumBuffer, 11, "0x%06x", (config.serial_number >> 4));
-    config.serial = serialNumBuffer;
-    Serial.printf("convert config.serial to hex: %08u = 0x%08x \n", config.serial_number, config.serial_number);
+    char buf[11];
+    snprintf(buf, sizeof(buf)/sizeof(buf[0]), "0x%06x", (config.serial_number >> 4));
+    config.serial = buf;
+    Serial.printf("convert config.serial to hex: %08u = 0x%06x\n", config.serial_number, config.serial_number);
     Serial.println("config.serial: " + config.serial);
     WriteLog("[INFO] - config version 2 - convert serial decimal->hexadecimal", true);
     WriteConfig();
   }
 
-  char charBufSB[11];
-  config.master_msb.toCharArray(charBufSB, config.master_msb.length() + 1);
-  config.ulMasterMSB = (int)strtol(charBufSB, NULL, 16);
-  config.master_lsb.toCharArray(charBufSB, config.master_lsb.length() + 1);
-  config.ulMasterLSB = (int)strtol(charBufSB, NULL, 16);
+  char buf[11];
+  config.master_msb_str.toCharArray(buf, sizeof(buf) / sizeof(buf[0]));
+  config.master_msb_num = (int)strtol(buf, NULL, 16);
+  config.master_lsb_str.toCharArray(buf, sizeof(buf) / sizeof(buf[0]));
+  config.master_lsb_num = (int)strtol(buf, NULL, 16);
 
   return true;
 } // boolean ReadConfig
@@ -370,14 +366,12 @@ boolean ReadConfig() {
 //############################################################################
 // Function to initialize configuration, either defaults or read from EEPROM
 //############################################################################
-void InitializeConfigData()
-{
+void InitializeConfigData() {
   char chipIdString[10];
   sprintf(chipIdString, "-%08x", ESP.getChipId());
 
   // apply default config if saved configuration not yet exist
-  if (!ReadConfig())
-  {
+  if (!ReadConfig()) {
     // DEFAULT CONFIG
     config.cfgVersion = 2;
     config.ssid = "MYSSID";
@@ -391,8 +385,8 @@ void InitializeConfigData()
     config.mqtt_broker_client_id = "JaroliftDongle";
     config.mqtt_broker_client_id += chipIdString;
     config.mqtt_devicetopic = "jarolift";
-    config.master_msb = "0x12345678";
-    config.master_lsb = "0x12345678";
+    config.master_msb_str = "0x12345678";
+    config.master_lsb_str = "0x12345678";
     config.learn_mode = true;
     config.shade_support = false;
     config.shade_enable  = false;
@@ -417,8 +411,7 @@ void InitializeConfigData()
 //####################################################################
 // Callback function for Ticker
 //####################################################################
-void Admin_Mode_Timeout()
-{
+void Admin_Mode_Timeout() {
   AdminTimeOutCounter++;
 } // void Admin_Mode_Timeout
 
@@ -443,23 +436,22 @@ void HeartBeat() {
   float pulse_on  = 0.05;                        // LED on for 50 milliseconds in normal mode
   float pulse_off = HEART_BEAT_CYCLE - pulse_on;
 
-  if (WiFi.status() != WL_CONNECTED)
-  {
+  if (WiFi.status() != WL_CONNECTED) {
     pulse_on  = HEART_BEAT_CYCLE / 2;            // LED on for 2 seconds, 2 seconds off while waiting for WiFi connect
     pulse_off = pulse_on;
   }
 
-  if (AdminEnabled)
-  {
+  if (AdminEnabled) {
     AdminTimeOutCounter++;
     pulse_off = 0.05;
     pulse_on  = HEART_BEAT_CYCLE - pulse_off;    // LED off for 50 milliseconds in admin mode
   }
 
-  if (highPulse)
+  if (highPulse) {
     tkHeartBeat.attach(pulse_on, HeartBeat);
-  else
+  } else {
     tkHeartBeat.attach(pulse_off, HeartBeat);
+  }
 
   highPulse = !highPulse;
   digitalWrite(led_pin, highPulse);              // toogle LED

@@ -1,22 +1,19 @@
 "use strict";var iqwerty=iqwerty||{};iqwerty.toast=function(){function t(o,r,i){if(null!==e())t.prototype.toastQueue.push({text:o,options:r,transitions:i});else{t.prototype.Transitions=i||n;var a=r||{};a=t.prototype.mergeOptions(t.prototype.DEFAULT_SETTINGS,a),t.prototype.show(o,a),a=null}}function e(){return i}function o(t){i=t}var r=400,n={SHOW:{"-webkit-transition":"opacity "+r+"ms, -webkit-transform "+r+"ms",transition:"opacity "+r+"ms, transform "+r+"ms",opacity:"1","-webkit-transform":"translateY(-100%) translateZ(0)",transform:"translateY(-100%) translateZ(0)"},HIDE:{opacity:"0","-webkit-transform":"translateY(150%) translateZ(0)",transform:"translateY(150%) translateZ(0)"}},i=null;return t.prototype.DEFAULT_SETTINGS={style:{main:{background:"rgba(0, 0, 0, .85)","box-shadow":"0 0 10px rgba(0, 0, 0, .8)","border-radius":"3px","z-index":"99999",color:"rgba(255, 255, 255, .9)",padding:"10px 15px","max-width":"60%",width:"100%","word-break":"keep-all",margin:"0 auto","text-align":"center",position:"fixed",left:"0",right:"0",bottom:"0","-webkit-transform":"translateY(150%) translateZ(0)",transform:"translateY(150%) translateZ(0)","-webkit-filter":"blur(0)",opacity:"0"}},settings:{duration:4e3}},t.prototype.Transitions={},t.prototype.toastQueue=[],t.prototype.timeout=null,t.prototype.mergeOptions=function(e,o){var r=o;for(var n in e)r.hasOwnProperty(n)?null!==e[n]&&e[n].constructor===Object&&(r[n]=t.prototype.mergeOptions(e[n],r[n])):r[n]=e[n];return r},t.prototype.generate=function(r,n){var i=document.createElement("div");"string"==typeof r&&(r=document.createTextNode(r)),i.appendChild(r),o(i),i=null,t.prototype.stylize(e(),n)},t.prototype.stylize=function(t,e){Object.keys(e).forEach(function(o){t.style[o]=e[o]})},t.prototype.show=function(o,r){this.generate(o,r.style.main);var n=e();document.body.insertBefore(n,document.body.firstChild),n.offsetHeight,t.prototype.stylize(n,t.prototype.Transitions.SHOW),n=null,clearTimeout(t.prototype.timeout),t.prototype.timeout=setTimeout(t.prototype.hide,r.settings.duration)},t.prototype.hide=function(){var o=e();t.prototype.stylize(o,t.prototype.Transitions.HIDE),clearTimeout(t.prototype.timeout),o.addEventListener("transitionend",t.prototype.animationListener),o=null},t.prototype.animationListener=function(){e().removeEventListener("transitionend",t.prototype.animationListener),t.prototype.destroy.call(this)},t.prototype.destroy=function(){var r=e();if(document.body.removeChild(r),r=null,o(null),t.prototype.toastQueue.length>0){var n=t.prototype.toastQueue.shift();t(n.text,n.options,n.transitions),n=null}},{Toast:t}}(),"undefined"!=typeof module&&(module.exports=iqwerty.toast);
 
-function showAllShutterChannel(){
-  var els = document.getElementsByName('shuttercontrol');
-  for (var i=0; i < els.length; i++) {
-    els[i].style.display = "block";
+function showAllShutterChannels(){
+  for (const element of document.getElementsByName('shuttercontrol')) {
+    element.style.display = "block";
   }
 }
 
 function getEventLog() {
-  var http = new XMLHttpRequest();
+  let http = new XMLHttpRequest();
   http.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
-      var log = this.responseText;
-      log = log.replace(/(?:\r\n|\r|\n)/g, '<br />');
-
-      document.getElementById("log").innerHTML = log;
-      document.getElementById('spinner').style.display = "none";
-      document.getElementById('log').style.display = "block";
+      let log = this.responseText.replace(/(?:\r\n|\r|\n)/g, '<br />');
+      document.getElementById("log").innerHTML          = log;
+      document.getElementById('spinner').style.display  = "none";
+      document.getElementById('log').style.display      = "block";
     }
   };
   http.open("POST", "api", true);
@@ -25,7 +22,7 @@ function getEventLog() {
 }
 
 function runShutterCmd(cmd, channel, param) {
-  var http = new XMLHttpRequest();
+  let http = new XMLHttpRequest();
   http.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
       iqwerty.toast.Toast(this.responseText);
@@ -36,8 +33,8 @@ function runShutterCmd(cmd, channel, param) {
   http.send("cmd=" + cmd + "&channel=" + channel + "&param=" + param);
 }
 
-function handleCheckbox(cmd, channel, channel_name) {
-  var http = new XMLHttpRequest();
+function handleCheckbox(cmd, channel, param) {
+  let http = new XMLHttpRequest();
   http.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
       iqwerty.toast.Toast(this.responseText);
@@ -45,36 +42,32 @@ function handleCheckbox(cmd, channel, channel_name) {
   };
   http.open("POST", "api", true);
   http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-  http.send("cmd=" + cmd + "&channel=" + channel + "&checked=" + channel_name);
+  http.send("cmd=" + cmd + "&channel=" + channel + "&checked=" + param);
 }
 
 function setChannelNameCallback(rowData, rowName) {
   runShutterCmd('set channel name', rowName, rowData['channel_name'])
 }
-
-var setChannelName = {"finishCallback": setChannelNameCallback};
+let setChannelName = {"finishCallback": setChannelNameCallback};
 
 function setShadeRuntimeCallback(rowData, rowName) {
   runShutterCmd('set shade runtime', rowName, rowData['shade_runtime'])
 }
-
-var setShadeRuntime = {"finishCallback": setShadeRuntimeCallback};
-
+let setShadeRuntime = {"finishCallback": setShadeRuntimeCallback};
 
 function getShutterCtrl(){
-  var http = new XMLHttpRequest();
+  let http = new XMLHttpRequest();
   http.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
-
-      var lines = this.responseText.split('\n');
-      var counter = 0;
-      for (let j = 0; j < lines.length; j++) {
+      // count configured (=named) channels
+      let counter = 0;
+      for (const line of this.responseText.split('\n')) {
         // line format for params: "chn=a;name=b;upDown=c;shade=d"
-        let params = lines[j].split(';');
+        let params = line.split(';');
         if (params[0] != "") {
           //get channel Id and get configured status
-          var channel_id = (params[0].split('='))[1];
-          var configured = true;
+          const channel_id = (params[0].split('='))[1];
+          let   configured = true;
 
           // set alternative display name if channel name is empty
           let channel_name = (params[1].split('='))[1];
@@ -85,12 +78,12 @@ function getShutterCtrl(){
             counter++;
           }
 
-          // get checkbox init value from flags
-          let auto_updown_checked = ((params[2].split('='))[1] == '1') ? 'checked' : '';
-          let auto_shade_checked  = ((params[3].split('='))[1] == '1') ? 'checked' : '';
+          // get initial checkbox value from flags
+          const auto_updown_checked = ((params[2].split('='))[1] == '1') ? 'checked' : '';
+          const auto_shade_checked  = ((params[3].split('='))[1] == '1') ? 'checked' : '';
 
           // create new element
-          var element = document.createElement("div");
+          let element = document.createElement("div");
           element.setAttribute("name", "shuttercontrol");
           // add HTML stuff to the element
           element.innerHTML = `
@@ -109,7 +102,7 @@ function getShutterCtrl(){
             <br><br>
           `;
           // hide element if it is not yet configured
-          if (configured == false){
+          if (!configured){
             element.style.display = "none";
           }
           document.getElementById('container').appendChild(element);
@@ -117,8 +110,8 @@ function getShutterCtrl(){
       }
       // disable spinner and show all shutter if there is no shutter configured yet.
       document.getElementById('spinner').style.display = "none";
-      if (counter == 0){
-        showAllShutterChannel();
+      if (counter == 0) {
+        showAllShutterChannels();
       }
     }
   };
@@ -128,19 +121,18 @@ function getShutterCtrl(){
 }
 
 function getShutterCfg(){
-  var http = new XMLHttpRequest();
+  let http = new XMLHttpRequest();
   http.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
-
-      var lines = this.responseText.split('\n');
-      var counter = 0;
-      for (var j = 0; j < lines.length; j++) {
+      // count configured (=named) channels
+      let counter = 0;
+      for (const line of this.responseText.split('\n')) {
         // line format for params: "chn=a;name=b;time=c"
-        let params = lines[j].split(';');
+        const params = line.split(';');
         if (params[0] != "") {
           //get channel Id and get configured status
-          var channel_id = (params[0].split('='))[1];
-          var configured = true;
+          const channel_id = (params[0].split('='))[1];
+          let   configured = true;
 
           // set alternative display name if channel name is empty
           let channel_name = (params[1].split('='))[1];
@@ -152,11 +144,11 @@ function getShutterCfg(){
           }
 
           // get shuttern runtime for shading
-          let runtime = (params[2].split('='))[1];
+          const runtime = (params[2].split('='))[1];
 
           // create new element
-          var element = document.createElement("div");
-          element.setAttribute("name", "shuttercontrol");
+          let element = document.createElement("div");
+          element.setAttribute("name", "shutterconfig");
           // add HTML stuff to the element
           element.innerHTML = `
             <table>
@@ -175,16 +167,16 @@ function getShutterCfg(){
             <br><br>
           `;
           // hide element if it is not yet configured
-          if (configured == false){
+          if (!configured){
             element.style.display = "none";
           }
           document.getElementById('container').appendChild(element);
         }
       }
-      // disable spinner and show all shutter if there is no shutter configured yet.
+      // disable spinner and show all shutters if there is no shutter configured yet.
       document.getElementById('spinner').style.display = "none";
       if (counter == 0){
-        showAllShutterChannel();
+        showAllShutterChannels();
       }
     }
   };
@@ -194,23 +186,22 @@ function getShutterCfg(){
 }
 
 function getConfig(){
-  var http = new XMLHttpRequest();
+  let http = new XMLHttpRequest();
   http.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
-      var lines = this.responseText.split('\n');
-      for (var j = 0; j < lines.length; j++) {
-        var result = lines[j].split('=');
-        if (result[1] != "" && result[0] != "") {
-          if (result[0] == "checkbox") {
-            if (result[2] == 1) {
-              document.getElementById(result[1]).checked = true;
-            } else {
-              document.getElementById(result[1]).checked = false;
-            }
-          } else if (result[0] == "text") {
-            document.getElementById(result[1]).textContent = result[2];
+      for (const line of this.responseText.split('\n')) {
+        console.log(line);
+        // payload may contain '=' signs -> split at first '=' to get key first and keep payload contiguous
+        let [key, val] = line.split(/=(.*)/);
+        if (key != "" && val != "") {
+          let params = val.split(/=(.*)/);
+          if (key == "checkbox") {
+            document.getElementById(params[0]).checked = (params[1] == 1);
+          } else if (key == "text") {
+            document.getElementById(params[0]).textContent = params[1];
           } else {
-            document.getElementById(result[0]).value = result[1];
+            // key is text field id -> set value from first split
+            document.getElementById(key).value = val;
           }
         }
       }
@@ -224,20 +215,16 @@ function getConfig(){
 }
 
 function writeConfig(cmd){
-  var elements = document.getElementById("configForm").elements;
-  var params = "";
-  for (var i = 0, element; element = elements[i++];) {
-    if (element.type == "checkbox"){
-      if (element.checked == true){
-        params += element.name + "=true&"
-      }else{
-        params += element.name + "=false&"
-      }
-    }else{
+  let params = "";
+  for (const element of document.getElementById("configForm").elements) {
+    if (element.type == "checkbox") {
+      // produces checkbox state as "<key>=true&" or "<key>=false&"
+      params += element.name + "=" + element.checked + "&";
+    } else {
       params += element.name + "=" + element.value + "&"
     }
   }
-  var http = new XMLHttpRequest();
+  let http = new XMLHttpRequest();
   http.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
       iqwerty.toast.Toast(this.responseText);
