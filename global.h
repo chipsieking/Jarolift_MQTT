@@ -53,7 +53,6 @@ int AdminTimeOutCounter = 0;                      // Counter for Disabling the A
 boolean wifi_disconnect_log = true;               // Flag to avoid repeated logging of disconnect events
 int led_pin = LED_BUILTIN;                        // GPIO Pin number for LED
 Ticker tkHeartBeat;                               // Timer for HeartBeat
-unsigned short devcnt = 0x0;                      // Initial 16Bit countervalue, stored in EEPROM and incremented once every time a command is send
 int cntadr = 110;                                 // EEPROM address where the 16Bit counter is stored.
 
 String web_cmd = "";                              // trigger to run a command whenever a action button has been pressed on the web interface

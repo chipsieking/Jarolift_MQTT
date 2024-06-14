@@ -140,6 +140,8 @@ void html_api() {
         }
         server.send(200, "text/plain", values);
       } else if (cmd == "get config") {
+        uint16_t devCnt;
+        EEPROM.get(cntadr, devCnt);
         String values = "";
         values += "ssid=" + config.ssid + "\n";
         values += "password=" + config.password + "\n";
@@ -188,7 +190,7 @@ void html_api() {
         }
         values += "serial=" + config.serial + "\n";
         values += "checkbox=set_and_generate_serial=0\n";
-        values += "devicecounter=" + (String)devcnt + "\n";
+        values += "devicecounter=" + (String)devCnt + "\n";
         values += "checkbox=set_devicecounter=0\n";
         values += "text=versionstr=Firmware " + String(PROGRAM_VERSION) + "\n";
         server.send(200, "text/plain", values);
