@@ -1,3 +1,18 @@
+#include "cc1101.h"
+
+// User configuration
+#define TX_PORT             4       // output port for transmission
+#define RX_PORT             5       // input port for reception
+
+#define PULSE_LEN_SHORT     400     // pulse-width in microseconds. Adapt for your use...
+#define PULSE_LEN_LONG      800
+
+CC1101 cc1101;                      // CC1101 hardware driver
+volatile bool iset = false;
+
+// forward declarations
+void IRAM_ATTR radio_rx_measure();
+
 void InitCC1101() {
   // initialize the transceiver chip
   WriteLog("[INFO] - initializing the CC1101 Transceiver. If you get stuck here, it is probably not connected.", true);
@@ -5,6 +20,10 @@ void InitCC1101() {
   cc1101.setSyncWord(syncWord, false);
   cc1101.setCarrierFreq(CFREQ_433);
   cc1101.disableAddressCheck();   // if not specified, will only display "packet received"
+
+  pinMode(TX_PORT, OUTPUT);       // TX bitbanging pin
+  pinMode(RX_PORT, INPUT_PULLUP); // RX IRQ pin
+  attachInterrupt(RX_PORT, radio_rx_measure, CHANGE); // activate RX IRQ handler
 }
 
 void CC1101Loop() {
@@ -14,9 +33,13 @@ void CC1101Loop() {
     enterrx();
     iset = false;
     delay(200);
-    attachInterrupt(RX_PORT, radio_rx_measure, CHANGE); // Interrupt on change of RX_PORT
+    attachInterrupt(RX_PORT, radio_rx_measure, CHANGE); // deactivate RX IRQ handler
   }
   CheckRxBuffer();
+
+  iset = true;
+  detachInterrupt(RX_PORT); // Interrupt on change of RX_PORT
+  delay(1);
 }
 
 void CheckRxBuffer() {
@@ -156,8 +179,7 @@ void keygen() {
   keylow = new_serial | 0x60000000;
   enc    = k.decrypt(keylow);
   device_key_msb  = enc;              // Stores MSB devicekey 16Bit
-
-  Serial.printf(" created devicekey low: 0x%08x // high: 0x%08x\n", device_key_lsb, device_key_msb);
+  // Serial.printf(" created devicekey low: 0x%08x // high: 0x%08x\n", device_key_lsb, device_key_msb);
 } // void keygen
 
 //####################################################################
@@ -165,64 +187,49 @@ void keygen() {
 // Send code two times. In case of one shutter did not "hear" the command.
 //####################################################################
 void radio_tx(int repetitions) {
-  pack = (button << 60) | (new_serial << 32) | dec;
+  uint64_t pack = (button << 60) | (new_serial << 32) | dec;
   for (int a = 0; a < repetitions; a++) {
-    digitalWrite(TX_PORT, LOW);      // CC1101 in TX Mode+
-    delayMicroseconds(1150);
-    radio_tx_frame(13);              // change 28.01.2018 default 10
-    delayMicroseconds(3500);
+    sendPreamble();
 
-    for (int i = 0; i < 64; i++) {
-      int out = ((pack >> i) & 0x1); // Bitmask to get MSB and send it first
-      if (out == 0x1) {
-        digitalWrite(TX_PORT, LOW);  // Simple encoding of bit state 1
-        delayMicroseconds(Lowpulse);
-        digitalWrite(TX_PORT, HIGH);
-        delayMicroseconds(Highpulse);
-      } else {
-        digitalWrite(TX_PORT, LOW);  // Simple encoding of bit state 0
-        delayMicroseconds(Highpulse);
-        digitalWrite(TX_PORT, HIGH);
-        delayMicroseconds(Lowpulse);
-      }
+    // send message body
+    for (unsigned i = 0; i < 64; i++) { // first 64 bits of message
+      sendBit((pack >> i) & 0x1);
     }
-    radio_tx_group_h();              // Last 8Bit. For motor 8-16.
-
-    delay(16);                       // delay in loop context is save for wdt
-  }
-} // void radio_tx
-
-//####################################################################
-// Sending of high_group_bits 8-16
-//####################################################################
-void radio_tx_group_h() {
-  for (int i = 0; i < 8; i++) {
-    int out = ((disc_h >> i) & 0x1); // Bitmask to get MSB and send it first
-    if (out == 0x1) {
-      digitalWrite(TX_PORT, LOW);    // Simple encoding of bit state 1
-      delayMicroseconds(Lowpulse);
-      digitalWrite(TX_PORT, HIGH);
-      delayMicroseconds(Highpulse);
-    } else {
-      digitalWrite(TX_PORT, LOW);    // Simple encoding of bit state 0
-      delayMicroseconds(Highpulse);
-      digitalWrite(TX_PORT, HIGH);
-      delayMicroseconds(Lowpulse);
+    for (unsigned i = 0; i < 8; i++) {  // last 8 bits (motors 9-16)
+      sendBit((disc_h >> i) & 0x1);
     }
-  }
-} // void radio_tx_group_h
 
-//####################################################################
-// Generates sync-pulses
-//####################################################################
-void radio_tx_frame(int l) {
-  for (int i = 0; i < l; ++i) {
-    digitalWrite(TX_PORT, LOW);
-    delayMicroseconds(400);          // change 28.01.2018 default highpulse
+    sendDelimiter();
+  }
+}
+
+// send frame preamble
+void sendPreamble() {
+  digitalWrite(TX_PORT, LOW);       // 1560us "on" pulse -> start of frame
+  delayMicroseconds(1560);
+  for (int i = 0; i < 12; ++i) {    // generate 12 "off"/"on" cycles with 800us period -> sync
     digitalWrite(TX_PORT, HIGH);
-    delayMicroseconds(380);          // change 28.01.2018 default lowpulse
+    delayMicroseconds(PULSE_LEN_SHORT);
+    digitalWrite(TX_PORT, LOW);
+    delayMicroseconds(PULSE_LEN_SHORT);
   }
-} // void radio_tx_frame
+  digitalWrite(TX_PORT, HIGH);      // 3960us "off" pulse -> start delimiter
+  delayMicroseconds(3960);
+}
+
+// send single bit in OOK encoding
+void sendBit(bool ook) {
+  digitalWrite(TX_PORT, LOW);
+  delayMicroseconds(ook ? PULSE_LEN_SHORT : PULSE_LEN_LONG);
+  digitalWrite(TX_PORT, HIGH);
+  delayMicroseconds(ook ? PULSE_LEN_LONG : PULSE_LEN_SHORT);
+}
+
+// send delimiter
+void sendDelimiter() {
+  digitalWrite(TX_PORT, HIGH);      // 16ms "off" pulse -> end delimiter
+  delay(16);                        // delay in loop context is save for wdt
+}
 
 //####################################################################
 // Calculate device code from received serial number

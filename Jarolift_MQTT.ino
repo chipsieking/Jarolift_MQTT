@@ -43,7 +43,6 @@
 //Board:
 //NodeMCU 1.0 (ESP-12E Module)
 
-
 #include <ESP8266WiFi.h>
 #include <EEPROM.h>
 #include <DoubleResetDetector.h>
@@ -52,7 +51,6 @@
 
 #include "helpers.h"
 #include "global.h"
-#include "cc1101.h"
 
 // needed by other *.ino
 #include "html_api.h"
@@ -62,22 +60,15 @@
 // Number of seconds after reset during which a
 // subseqent reset will be considered a double reset.
 #define DRD_TIMEOUT 10
-
 // RTC Memory Address for the DoubleResetDetector to use
 #define DRD_ADDRESS 0
 
-// User configuration
-#define Lowpulse         400    // Defines pulse-width in microseconds. Adapt for your use...
-#define Highpulse        800
-
-#define BITS_SIZE          8
 byte syncWord            = 199;
 int device_key_msb       = 0x0; // stores cryptkey MSB
 int device_key_lsb       = 0x0; // stores cryptkey LSB
 uint64_t button          = 0x0; // 1000=0x8 up, 0100=0x4 stop, 0010=0x2 down, 0001=0x1 learning
 int disc                 = 0x0;
 uint32_t dec             = 0;   // stores the 32Bit encrypted code
-uint64_t pack            = 0;   // Contains data to send.
 byte disc_low[MAX_CHANNELS]   = {0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x0, 0x0, 0x0, 0x0, 0x0,  0x0,  0x0,  0x0};
 byte disc_high[MAX_CHANNELS]  = {0x0, 0x0, 0x0, 0x0, 0x0,  0x0,  0x0,  0x0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80};
 byte disc_l              = 0;
@@ -90,8 +81,6 @@ int MqttRetryCounter = 0;                 // Counter for MQTT reconnect
 // RX variables and defines
 #define debounce         200              // Ignoring short pulses in reception... no clue if required and if it makes sense ;)
 #define pufsize          216              // Pulsepuffer
-#define TX_PORT            4              // Outputport for transmission
-#define RX_PORT            5              // Inputport for reception
 uint32_t rx_serial       = 0;
 char rx_serial_array[8]  = {0};
 char rx_disc_low[8]      = {0};
@@ -105,16 +94,11 @@ volatile uint32_t decoded         = 0x0;  // decoded hop code
 volatile byte pbwrite;
 volatile unsigned int lowbuf[pufsize];    // ring buffer storing LOW pulse lengths
 volatile unsigned int hibuf[pufsize];     // ring buffer storing HIGH pulse lengths
-volatile bool iset = false;
 volatile byte value = 0;                  // Stores RSSI Value
 long rx_time;
 int steadycnt = 0;
 static boolean timeIsSet;
 DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
-CC1101 cc1101;                            // The connection to the hardware chip CC1101 the RF Chip
-
-// forward declarations
-void IRAM_ATTR radio_rx_measure();
 
 //Over the Air Update
 #include <ArduinoOTA.h>
@@ -201,21 +185,13 @@ void setup()
 
   MqttInit();
 
-  pinMode(TX_PORT, OUTPUT); // TX Pin
-
-  // RX
-  pinMode(RX_PORT, INPUT_PULLUP);
-  attachInterrupt(RX_PORT, radio_rx_measure, CHANGE); // Interrupt on change of RX_PORT
-
   SetupOTA();
 } // void setup
 
 //####################################################################
 // main loop
 //####################################################################
-void loop()
-{
-
+void loop() {
   // Call the double reset detector loop method every so often,
   // so that it can recognise when the timeout expires.
   // You can also call drd.stop() when you wish to no longer
@@ -574,10 +550,6 @@ ShutterCmd string2ShutterCmd(const char* str) {
 //####################################################################
 void sendCmd(ShutterCmd cmd, unsigned channel) {
   CC1101Loop();
-
-  iset = true;
-  detachInterrupt(RX_PORT); // Interrupt on change of RX_PORT
-  delay(1);
 
   switch (cmd) {
     case CMD_UP:
