@@ -331,7 +331,7 @@ boolean ReadConfig() {
     WriteConfig();
   }
 
-  // check is config.serial is hexadecimal
+  // check if config.serial is hexadecimal
   // if necessary, convert decimal to hexadecimal
   if ((config.serial[0] == '0') && (config.serial[1] == 'x')) {
     // config.serial is hex
@@ -421,17 +421,19 @@ void Admin_Mode_Timeout() {
 boolean highPulse = true;
 #define HEART_BEAT_CYCLE 60                      // HeartBeat cycle in seconds
 #define EEPROM_COMMIT_CYCLE 3600                  // cyclic EEPROM commit (if needed)
+
 void HeartBeat() {
   static unsigned cnt;
   if (cnt < EEPROM_COMMIT_CYCLE / HEART_BEAT_CYCLE) {
     cnt++;
   } else {
     // cyclic EEPROM commit (does nothing if not dirty) to avoid excessive flash wear
-    bool ok = EEPROM.commit();
-    if (!ok) {
+    if (EEPROM.commit()) {
+      cnt = 0;
+    } else {
+      // retry EEPROM write on every heartbeat cycle
       WriteLog("[ERR ] - cyclic EEPROM commit failed", true);
     }
-    cnt = 0;
   }
   float pulse_on  = 0.05;                        // LED on for 50 milliseconds in normal mode
   float pulse_off = HEART_BEAT_CYCLE - pulse_on;

@@ -32,10 +32,9 @@ void html_api() {
     unsigned  channel = MAX_CHANNELS;  // needs to be overridden to become valid
     String    param = "";
     bool      checked = false;
-    for (unsigned i = 0; i < server.args(); ++i) {
+    for (int i = 0; i < server.args(); ++i) {
       if (debug_webui) {
-        Serial.printf("server.argName(%d): '%s'\n", i, server.argName(i).c_str());
-        Serial.printf(" urldecode: '%s'\n", urldecode(server.arg(i)).c_str());
+        Serial.printf("  arg(%d): '%s' -> '%s'\n", i, server.argName(i).c_str(), urldecode(server.arg(i)).c_str());
       }
       if (server.argName(i) == "cmd")     cmd     = urldecode(server.arg(i));
       if (server.argName(i) == "channel") channel = server.arg(i).toInt();
@@ -212,7 +211,7 @@ void html_api() {
           if (checked) {
             config.flags[channel] |= CHANNEL_FLAG_AUTO_UPDOWN;
           } else {
-            config.flags[channel] &= CHANNEL_FLAG_AUTO_UPDOWN;
+            config.flags[channel] &= ~CHANNEL_FLAG_AUTO_UPDOWN;
           }
           WriteChannelFlags(channel);
           String status_text = "Updating channel " + String(channel) + " auto up/down to '" + checked + "'.";
@@ -223,7 +222,7 @@ void html_api() {
           if (checked) {
             config.flags[channel] |= CHANNEL_FLAG_AUTO_SHADE;
           } else {
-            config.flags[channel] &= CHANNEL_FLAG_AUTO_SHADE;
+            config.flags[channel] &= ~CHANNEL_FLAG_AUTO_SHADE;
           }
           WriteChannelFlags(channel);
           String status_text = "Updating channel " + String(channel) + " auto shade to '" + checked + "'.";
