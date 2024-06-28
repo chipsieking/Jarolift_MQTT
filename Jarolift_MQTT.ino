@@ -38,8 +38,6 @@
   15      15           1000 0000                   0000 0000           0000 0111
 */
 
-#define DEVICE 0
-
 //Board:
 //NodeMCU 1.0 (ESP-12E Module)
 
@@ -55,46 +53,28 @@
 // needed by other *.ino
 #include "html_api.h"
 
-
-// Number of seconds after reset during which a
-// subseqent reset will be considered a double reset.
-#define DRD_TIMEOUT 10
-// RTC Memory Address for the DoubleResetDetector to use
-#define DRD_ADDRESS 0
-
-uint64_t button          = 0x0; // 1000=0x8 up, 0100=0x4 stop, 0010=0x2 down, 0001=0x1 learning
-int disc                 = 0x0;
-byte disc_low[MAX_CHANNELS]   = {0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x0, 0x0, 0x0, 0x0, 0x0,  0x0,  0x0,  0x0};
-byte disc_high[MAX_CHANNELS]  = {0x0, 0x0, 0x0, 0x0, 0x0,  0x0,  0x0,  0x0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80};
-byte disc_l              = 0;
-byte disc_h              = 0;
-byte adresses[MAX_CHANNELS]   = {5, 11, 17, 23, 29, 35, 41, 47, 53, 59, 65, 71, 77, 85, 91, 97 }; // Defines start addresses of channel data stored in EEPROM 4bytes s/n.
-int MqttRetryCounter = 0;                 // Counter for MQTT reconnect
-
-// RX variables and defines
-#define debounce         200              // Ignoring short pulses in reception... no clue if required and if it makes sense ;)
-#define pufsize          216              // Pulsepuffer
-uint32_t rx_serial       = 0;
-char rx_serial_array[8]  = {0};
-char rx_disc_low[8]      = {0};
-char rx_disc_high[8]     = {0};
-uint32_t rx_hopcode      = 0;
-uint16_t rx_disc_h       = 0;
-byte rx_function         = 0;
-int rx_device_key_msb    = 0x0;           // stores cryptkey MSB
-int rx_device_key_lsb    = 0x0;           // stores cryptkey LSB
-volatile uint32_t decoded         = 0x0;  // decoded hop code
-volatile byte pbwrite;
-volatile unsigned int lowbuf[pufsize];    // ring buffer storing LOW pulse lengths
-volatile unsigned int hibuf[pufsize];     // ring buffer storing HIGH pulse lengths
-volatile byte value = 0;                  // Stores RSSI Value
-int steadycnt = 0;
-static boolean timeIsSet;
+// double reset detector stuff
+#define DRD_TIMEOUT 10  // number of seconds after reset during which a subsequent reset will be considered a double reset
+#define DRD_ADDRESS 0   // RTC Memory Address for the DoubleResetDetector to use
 DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
+
+// CC1101 interface stuff
+// low-level shutter cmds
+typedef enum {
+  TX_CMD_LEARN  = 0x1,  // separate learning cmd for receivers before 2010 (?)
+  TX_CMD_DOWN   = 0x2,  // move shutter downwards
+  TX_CMD_STOP   = 0x4,  // stop shutter
+  TX_CMD_UP     = 0x8,  // move shutter upwards
+  TX_CMD_UPDOWN = 0xa,  // combination of up + down
+} txCmd_t;
+
+static boolean timeIsSet;
 
 //Over the Air Update
 #include <ArduinoOTA.h>
 bool UploadIsOTA = false;
+
+#define DEVICE 0
 #if DEVICE
 const char deviceNameShort[] = "JaroliftESP8266-2";
 #else
@@ -236,21 +216,9 @@ void loop() {
 // function to move the shutter up
 //####################################################################
 void cmd_up(int channel) {
-  uint64_t serial;
-  EEPROM.get(adresses[channel], serial);
-  button = 0x8;
-  disc_l = disc_low[channel];
-  disc_h = disc_high[channel];
-  disc = (disc_l << 8) | (serial & 0xFF);
-  rx_disc_low[0]  = disc_l;
-  rx_disc_high[0] = disc_h;
-  CC1101_send(serial, 2);
-  rx_function = 0x8;
-  rx_serial_array[0] = (serial >> 24) & 0xFF;
-  rx_serial_array[1] = (serial >> 16) & 0xFF;
-  rx_serial_array[2] = (serial >> 8) & 0xFF;
-  rx_serial_array[3] = serial & 0xFF;
-  mqtt_send_percent_closed_state(channel, 0, "UP");
+  CC1101_send(channel, TX_CMD_UP, 2, 0x8);
+  WriteLog("[INFO] - command UP for channel " + (String)channel + " (" + config.channel_name[channel] + ") sent.", true);
+  mqtt_send_percent_closed_state(channel, 0);
   devcnt_handler();
 } // void cmd_up
 
@@ -258,21 +226,9 @@ void cmd_up(int channel) {
 // function to move the shutter down
 //####################################################################
 void cmd_down(int channel) {
-  uint64_t serial;
-  EEPROM.get(adresses[channel], serial);
-  button = 0x2;
-  disc_l = disc_low[channel];
-  disc_h = disc_high[channel];
-  disc = (disc_l << 8) | (serial & 0xFF);
-  rx_disc_low[0]  = disc_l;
-  rx_disc_high[0] = disc_h;
-  CC1101_send(serial, 2); // Call TX routine
-  rx_function = 0x2;
-  rx_serial_array[0] = (serial >> 24) & 0xFF;
-  rx_serial_array[1] = (serial >> 16) & 0xFF;
-  rx_serial_array[2] = (serial >> 8) & 0xFF;
-  rx_serial_array[3] = serial & 0xFF;
-  mqtt_send_percent_closed_state(channel, 100, "DOWN");
+  CC1101_send(channel, TX_CMD_DOWN, 2, 0x2);
+  WriteLog("[INFO] - command DOWN for channel " + (String)channel + " (" + config.channel_name[channel] + ") sent.", true);
+  mqtt_send_percent_closed_state(channel, 100);
   devcnt_handler();
 } // void cmd_down
 
@@ -280,20 +236,7 @@ void cmd_down(int channel) {
 // function to stop the shutter
 //####################################################################
 void cmd_stop(int channel) {
-  uint64_t serial;
-  EEPROM.get(adresses[channel], serial);
-  button = 0x4;
-  disc_l = disc_low[channel];
-  disc_h = disc_high[channel];
-  disc = (disc_l << 8) | (serial & 0xFF);
-  rx_disc_low[0]  = disc_l;
-  rx_disc_high[0] = disc_h;
-  CC1101_send(serial, 2);
-  rx_function = 0x4;
-  rx_serial_array[0] = (serial >> 24) & 0xFF;
-  rx_serial_array[1] = (serial >> 16) & 0xFF;
-  rx_serial_array[2] = (serial >> 8) & 0xFF;
-  rx_serial_array[3] = serial & 0xFF;
+  CC1101_send(channel, TX_CMD_STOP, 2, 0x4);
   WriteLog("[INFO] - command STOP for channel " + (String)channel + " (" + config.channel_name[channel] + ") sent.", true);
   devcnt_handler();
 } // void cmd_stop
@@ -302,21 +245,9 @@ void cmd_stop(int channel) {
 // function to move shutter to shade position
 //####################################################################
 void cmd_shade(int channel) {
-  uint64_t serial;
-  EEPROM.get(adresses[channel], serial);
-  button = 0x4;
-  disc_l = disc_low[channel];
-  disc_h = disc_high[channel];
-  disc = (disc_l << 8) | (serial & 0xFF);
-  rx_disc_low[0]  = disc_l;
-  rx_disc_high[0] = disc_h;
-  CC1101_send(serial, 20);
-  rx_function = 0x3;
-  rx_serial_array[0] = (serial >> 24) & 0xFF;
-  rx_serial_array[1] = (serial >> 16) & 0xFF;
-  rx_serial_array[2] = (serial >> 8) & 0xFF;
-  rx_serial_array[3] = serial & 0xFF;
-  mqtt_send_percent_closed_state(channel, 90, "SHADE");
+  CC1101_send(channel, TX_CMD_STOP, 20, 0x3);
+  WriteLog("[INFO] - command SHADE for channel " + (String)channel + " (" + config.channel_name[channel] + ") sent.", true);
+  mqtt_send_percent_closed_state(channel, 90);
   devcnt_handler();
 } // void cmd_shade
 
@@ -324,27 +255,13 @@ void cmd_shade(int channel) {
 // function to set the learn/set the shade position
 //####################################################################
 void cmd_set_shade_position(int channel) {
-  uint64_t serial;
-  EEPROM.get(adresses[channel], serial);
-  button = 0x4;
-  disc_l = disc_low[channel];
-  disc_h = disc_high[channel];
-  disc = (disc_l << 8) | (serial & 0xFF);
-  rx_disc_low[0]  = disc_l;
-  rx_disc_high[0] = disc_h;
-
   for (int i = 0; i < 4; i++) {
-    CC1101_send(serial, 1);
+    CC1101_send(channel, TX_CMD_STOP, 1, 0x6);
     delay(300);
   }
-  rx_function = 0x6;
-  rx_serial_array[0] = (serial >> 24) & 0xFF;
-  rx_serial_array[1] = (serial >> 16) & 0xFF;
-  rx_serial_array[2] = (serial >> 8) & 0xFF;
-  rx_serial_array[3] = serial & 0xFF;
-  WriteLog("[INFO] - command SET SHADE for channel " + (String)channel + " (" + config.channel_name[channel] + ") sent.", true);
-  devcnt_handler();
   delay(2000); // Safety time to prevent accidentally erase of end-points.
+  WriteLog("[INFO] - command SET_SHADE for channel " + (String)channel + " (" + config.channel_name[channel] + ") sent.", true);
+  devcnt_handler();
 } // void cmd_set_shade_position
 
 //####################################################################
@@ -352,39 +269,28 @@ void cmd_set_shade_position(int channel) {
 // send learning packet.
 //####################################################################
 void cmd_learn(int channel) {
-  uint64_t serial;
   WriteLog("[INFO] - putting channel " +  (String) channel + " into learn mode ...", false);
-  EEPROM.get(adresses[channel], serial);
-  if (config.learn_mode == true)
-    button = 0xA;                           // New learn method. Up+Down followd by Stop.
-  else
-    button = 0x1;                           // Old learn method for receiver before Mfg date 2010.
-  disc_l = disc_low[channel] ;
-  disc_h = disc_high[channel];
-  disc = (disc_l << 8) | (serial & 0xFF);
-  CC1101_send(serial, 1);
-  if (config.learn_mode == true) {
+
+  if (config.learn_mode) {
+    // new learning sequence: up + down followed by stop
+    CC1101_send(channel, TX_CMD_UPDOWN, 1, 0x0);
     delay(1000);
-    button = 0x4;   // Stop
-    CC1101_send(serial, 1);
+    CC1101_send(channel, TX_CMD_STOP, 1, 0x0);
+  } else {
+    // learning cmd for receivers before 2010 (?)
+    CC1101_send(channel, TX_CMD_LEARN, 1, 0x0);
   }
+  WriteLog("[INFO] - command LEARN for channel " + (String)channel + " (" + config.channel_name[channel] + ") sent.", true);
   devcnt_handler();
-  WriteLog("Channel learned!", true);
 } // void cmd_learn
 
-//####################################################################
-// function to send UP+DOWN button at same time
+//####################################################################pdownpdown
+// function to send up + down simultaneously
 //####################################################################
 void cmd_updown(int channel) {
-  uint64_t serial;
-  EEPROM.get(adresses[channel], serial);
-  button = 0xA;
-  disc_l = disc_low[channel] ;
-  disc_h = disc_high[channel];
-  disc = (disc_l << 8) | (serial & 0xFF);
-  CC1101_send(serial, 1);
-  devcnt_handler();
+  CC1101_send(channel, TX_CMD_UPDOWN, 1, 0x0);
   WriteLog("[INFO] - command UPDOWN for channel " + (String)channel + " (" + config.channel_name[channel] + ") sent.", true);
+  devcnt_handler();
 } // void cmd_updown
 
 //####################################################################
@@ -430,7 +336,7 @@ void cmd_save_config() {
   if (config.set_devicecounter) {
     uint16_t new_devcnt = strtoul(config.new_devicecounter.c_str(), NULL, 10);
     WriteLog("[CFG ] - set devicecounter to " + String(new_devcnt), true);
-    EEPROM.put(cntadr, new_devcnt);
+    EEPROM.put(EEPROM_ADDR_DEV_CNT, new_devcnt);
     devcnt_handler();
   }
   WriteConfig();
@@ -453,12 +359,10 @@ void cmd_restart() {
 //####################################################################
 void cmd_generate_serials(uint32_t sn) {
   WriteLog("[CFG ] - Generate serial numbers starting from" + String(sn), true);
-  uint32_t z = sn;
-  for (uint32_t i = 0; i < MAX_CHANNELS; ++i) { // generate 16 serial numbers and storage in EEPROM
-    EEPROM.put(adresses[i], z);   // Serial 4Bytes
-    z++;
+  for (unsigned i = 0; i < MAX_CHANNELS; ++i) { // generate 16 32Bit serial numbers and store them in EEPROM
+    EEPROM.put(EEPROM_ADDR_SERIAL[i], sn++);
   }
-  EEPROM.put(cntadr, 0);  // initialize device counter
+  EEPROM.put(EEPROM_ADDR_DEV_CNT, 0);  // initialize device counter
   devcnt_handler();
   delay(100);
 } // void cmd_generate_serials

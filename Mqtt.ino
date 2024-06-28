@@ -125,7 +125,7 @@ void devcnt_handler() {
     const char * msg = Topic.c_str();
 
     uint16_t devCnt;
-    EEPROM.get(cntadr, devCnt);
+    EEPROM.get(EEPROM_ADDR_DEV_CNT, devCnt);
 
     char devcntstr[10];
     itoa(devCnt, devcntstr, 10);
@@ -136,7 +136,7 @@ void devcnt_handler() {
 //####################################################################
 // send status via mqtt
 //####################################################################
-void mqtt_send_percent_closed_state(int channelNum, int percent, String command) {
+void mqtt_send_percent_closed_state(int channelNum, int percent) {
   if (percent > 100) percent = 100;
   if (percent < 0) percent = 0;
   if (mqtt_client.connected()) {
@@ -146,7 +146,6 @@ void mqtt_send_percent_closed_state(int channelNum, int percent, String command)
     const char * msg = Topic.c_str();
     mqtt_client.publish(msg, percentstr);
   }
-  WriteLog("[INFO] - command " + command + " for channel " + (String)channelNum + " (" + config.channel_name[channelNum] + ") sent.", true);
 } // void mqtt_send_percent_closed_state
 
 //####################################################################
@@ -167,7 +166,7 @@ void mqtt_send_config() {
           Payload += ", ";
         }
         uint64_t serial;
-        EEPROM.get(adresses[channelNum], serial);
+        EEPROM.get(EEPROM_ADDR_SERIAL[channelNum], serial);
         sprintf(numBuffer, "0x%08llx", serial);
         Payload += "{\"id\":" + String(channelNum) + ", \"name\":\"" + config.channel_name[channelNum] + "\", "
                    + "\"serial\":\"" + numBuffer +  "\"}";
@@ -189,7 +188,7 @@ void mqtt_send_config() {
 
     // send most important other config info
     uint16_t devCnt;
-    EEPROM.get(cntadr, devCnt);
+    EEPROM.get(EEPROM_ADDR_DEV_CNT, devCnt);
     snprintf(numBuffer, 15, "%d", devCnt);
     Payload = "{\"serialprefix\":\"" + config.serial + "\", "
               + "\"mqtt-clientid\":\"" + config.mqtt_broker_client_id + "\", "

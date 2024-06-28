@@ -11,21 +11,48 @@
 CC1101 cc1101;                      // CC1101 hardware driver
 volatile bool iset = false;
 
-void IRAM_ATTR rxIrq();
+// forward declarations
 void enterTx();
 void enterRx();
+
+byte disc_low[MAX_CHANNELS]   = {0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x0, 0x0, 0x0, 0x0, 0x0,  0x0,  0x0,  0x0};
+byte disc_high[MAX_CHANNELS]  = {0x0, 0x0, 0x0, 0x0, 0x0,  0x0,  0x0,  0x0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80};
+
+char rx_serial_array[8]  = {0};
+char rx_disc_low[8]      = {0};
+char rx_disc_high[8]     = {0};
+byte rx_function         = 0;
+
+
+
+// RX variables and defines
+#define debounce         200              // Ignoring short pulses in reception... no clue if required and if it makes sense ;)
+#define pufsize          216              // Pulsepuffer
+uint32_t rx_serial       = 0;
+uint32_t rx_hopcode      = 0;
+uint16_t rx_disc_h       = 0;
+int rx_device_key_msb    = 0x0;           // stores cryptkey MSB
+int rx_device_key_lsb    = 0x0;           // stores cryptkey LSB
+volatile uint32_t decoded         = 0x0;  // decoded hop code
+volatile byte pbwrite;
+volatile unsigned int lowbuf[pufsize];    // ring buffer storing LOW pulse lengths
+volatile unsigned int hibuf[pufsize];     // ring buffer storing HIGH pulse lengths
+volatile byte value = 0;                  // Stores RSSI Value
+
+
+void IRAM_ATTR rxIrq();
 
 void CC1101_init() {
   // initialize the transceiver chip
   WriteLog("[INFO] - initializing the CC1101 Transceiver. If you get stuck here, it is probably not connected.", true);
   cc1101.init();
-  cc1101.setSyncWord(199, false);   // ??? TODO magic
+  cc1101.setSyncWord(199, false);   // ??? TODO magic sync word
   cc1101.setCarrierFreq(CFREQ_433);
   cc1101.disableAddressCheck();   // if not specified, will only display "packet received"
 
-  pinMode(TX_PORT, OUTPUT);                           // CC1101 TX pin
-  pinMode(RX_PORT, INPUT_PULLUP);                     // CC1101 RX pin
-  attachInterrupt(RX_PORT, rxIrq, CHANGE); // activate interrupt on change of RX_PORT
+  pinMode(TX_PORT, OUTPUT);                   // CC1101 TX pin
+  pinMode(RX_PORT, INPUT_PULLUP);             // CC1101 RX pin
+  attachInterrupt(RX_PORT, rxIrq, CHANGE);    // interrupt on change of RX_PORT
 }
 
 void CC1101_loop() {
@@ -35,16 +62,18 @@ void CC1101_loop() {
     enterRx();
     iset = false;
     delay(200);
-    attachInterrupt(RX_PORT, rxIrq, CHANGE); // Interrupt on change of RX_PORT
+    attachInterrupt(RX_PORT, rxIrq, CHANGE);  // interrupt on change of RX_PORT
   }
   checkRxBuffer();
 
   iset = true;
-  detachInterrupt(RX_PORT);                           // deactivate interrupt on change of RX_PORT
+  detachInterrupt(RX_PORT);                   // no interrupt on change of RX_PORT
   delay(1);
 }
 
 void checkRxBuffer() {
+  static int steadycnt;
+
   // Check if RX buffer is full
   if ((lowbuf[0] > 3650) && (lowbuf[0] < 4300) && (pbwrite >= 65) && (pbwrite <= 75)) {     // Decode received data...
     if (debug_log_radio_receive_all)
@@ -162,14 +191,14 @@ void IRAM_ATTR rxIrq() {
 //####################################################################
 // Generation of the encrypted message (Hopcode)
 //####################################################################
-uint32_t keeloq(uint64_t newSerial, uint16_t devCnt) {
+uint32_t keeloq(uint32_t serial, uint32_t disc, uint16_t devCnt) {
   Keeloq k1(config.master_msb_num, config.master_lsb_num);
-  int keyLo = k1.decrypt(newSerial | 0x20000000);
-  int keyHi = k1.decrypt(newSerial | 0x60000000);
+  int keyLo = k1.decrypt(serial | 0x20000000);
+  int keyHi = k1.decrypt(serial | 0x60000000);
   Serial.printf(" created devicekey low: 0x%08x // high: 0x%08x\n", keyLo, keyHi);
 
   Keeloq k2(keyHi, keyLo);
-  unsigned int result = (disc << 16) | devCnt;  // Append counter value to discrimination value
+  uint32_t result = (disc << 16) | devCnt;  // Append counter value to discrimination value
   return k2.encrypt(result);
 }
 
@@ -186,17 +215,27 @@ uint32_t keeloq(uint64_t newSerial, uint16_t devCnt) {
 // } // void keygen
 
 //####################################################################
-// Simple TX routine. Repetitions for simulate continuous button press.
-// Send code two times. In case of one shutter did not "hear" the command.
+// Simple bitbanging TX routine.
+// cycles:
+// - 2: standard number of TX cycles for up/down/stop cmds
+// - multiple cycles for continuously pressed buttons
 //####################################################################
-void CC1101_send(uint64_t newSerial, int repetitions) {
+void CC1101_send(unsigned channel, txCmd_t cmd, int cycles, byte rxFunc) {
+  uint32_t serial;
+  EEPROM.get(EEPROM_ADDR_SERIAL[channel], serial);
+  uint32_t disc = ((uint32_t)disc_low[channel] << 8) | (serial & 0xFF);
   uint16_t devCnt;
-  EEPROM.get(cntadr, devCnt);
-  uint32_t dec = keeloq(newSerial, devCnt);
-  uint64_t pack = (button << 60) | (newSerial << 32) | dec;
+  EEPROM.get(EEPROM_ADDR_DEV_CNT, devCnt);
+  uint32_t dec = keeloq(serial, disc, devCnt);
+  uint64_t pack = ((uint64_t)cmd << 60) | ((uint64_t)serial << 32) | dec;
+
+  rx_function = rxFunc;
+  rx_disc_low[0]  = disc_low[channel];
+  rx_disc_high[0] = disc_high[channel];
+
 
   enterTx();
-  for (int a = 0; a < repetitions; a++) {
+  for (int a = 0; a < cycles; a++) {
     sendPreamble();
 
     // send message body
@@ -204,14 +243,19 @@ void CC1101_send(uint64_t newSerial, int repetitions) {
       sendBit((pack >> i) & 0x1);
     }
     for (unsigned i = 0; i < 8; i++) {  // last 8 bits (motors 9-16)
-      sendBit((disc_h >> i) & 0x1);
+      sendBit((disc_high[channel] >> i) & 0x1);
     }
 
     sendDelimiter();
   }
   enterRx();
 
-  EEPROM.put(cntadr, ++devCnt);
+  rx_serial_array[0] = (serial >> 24) & 0xFF;
+  rx_serial_array[1] = (serial >> 16) & 0xFF;
+  rx_serial_array[2] = (serial >> 8) & 0xFF;
+  rx_serial_array[3] = serial & 0xFF;
+
+  EEPROM.put(EEPROM_ADDR_DEV_CNT, ++devCnt);
 }
 
 // send frame preamble

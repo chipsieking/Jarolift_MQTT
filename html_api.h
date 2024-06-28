@@ -141,7 +141,7 @@ void html_api() {
         server.send(200, "text/plain", values);
       } else if (cmd == "get config") {
         uint16_t devCnt;
-        EEPROM.get(cntadr, devCnt);
+        EEPROM.get(EEPROM_ADDR_DEV_CNT, devCnt);
         String values = "";
         values += "ssid=" + config.ssid + "\n";
         values += "password=" + config.password + "\n";

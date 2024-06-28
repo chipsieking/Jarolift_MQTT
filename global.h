@@ -53,7 +53,6 @@ int AdminTimeOutCounter = 0;                      // Counter for Disabling the A
 boolean wifi_disconnect_log = true;               // Flag to avoid repeated logging of disconnect events
 int led_pin = LED_BUILTIN;                        // GPIO Pin number for LED
 Ticker tkHeartBeat;                               // Timer for HeartBeat
-int cntadr = 110;                                 // EEPROM address where the 16Bit counter is stored.
 
 String web_cmd = "";                              // trigger to run a command whenever a action button has been pressed on the web interface
 int web_cmd_channel;                              // keeps the respective channel ID for the web_cmd
@@ -71,6 +70,9 @@ boolean debug_log_radio_receive_all = false;
 boolean mqtt_send_radio_receive_all = true;
 
 #define MAX_CHANNELS  16
+const int  EEPROM_ADDR_DEV_CNT = 110;             // EEPROM address of transmitter's 16Bit device counter
+const byte EEPROM_ADDR_SERIAL[MAX_CHANNELS] = {5, 11, 17, 23, 29, 35, 41, 47, 53, 59, 65, 71, 77, 85, 91, 97 }; // EEPROM addresses of channels' serial numbers
+
 struct strConfig {
   uint16_t  cfgVersion;
   String    ssid;
