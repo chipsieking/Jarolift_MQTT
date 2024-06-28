@@ -19,7 +19,6 @@
 #define GLOBAL_H
 
 #include <simpleDSTadjust.h>
-#include <ESP8266WebServer.h>
 #include <WiFiClient.h>
 #include <PubSubClient.h>
 #include <Ticker.h>
@@ -42,7 +41,6 @@ struct dstRule startRule = {TIMEZONE_DAYLIGHT, Last, Sun, Mar, 2, 3600};  // beg
 struct dstRule endRule   = {TIMEZONE_STANDARD, Last, Sun, Oct, 2, 0};     // beginning of standard time
 simpleDSTadjust dstAdjusted(startRule, endRule);  // Setup simpleDSTadjust Library rules
 
-ESP8266WebServer server(80);                      // The Webserver
 WiFiClient espClient;
 PubSubClient mqtt_client(espClient);              // mqtt client instance
 long mqttLastConnectAttempt = 0;                  // timepoint of last connect attempt in milliseconds

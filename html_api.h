@@ -18,6 +18,8 @@
 #ifndef HTML_API_H
 #define HTML_API_H
 
+#include <ESP8266WebServer.h>
+extern ESP8266WebServer server;                      // The Webserver
 
 //####################################################################
 // API call to get data or execute commands via WebIf

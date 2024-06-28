@@ -38,8 +38,6 @@
   15      15           1000 0000                   0000 0000           0000 0111
 */
 
-#define DEVICE 0
-
 //Board:
 //NodeMCU 1.0 (ESP-12E Module)
 
@@ -53,7 +51,6 @@
 #include "global.h"
 
 // needed by other *.ino
-#include "html_api.h"
 #include <KeeloqLib.h>
 
 
@@ -100,14 +97,6 @@ int steadycnt = 0;
 static boolean timeIsSet;
 DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 
-//Over the Air Update
-#include <ArduinoOTA.h>
-bool UploadIsOTA = false;
-#if DEVICE
-const char deviceNameShort[] = "JaroliftESP8266-2";
-#else
-const char deviceNameShort[] = "JaroliftESP8266";
-#endif
 
 //####################################################################
 // sketch initialization routine
@@ -179,13 +168,13 @@ void setup()
     ConfigureWifi();
   }
 
-  InitWebServer();
+  WebServer_init();
   
   tkHeartBeat.attach(1, HeartBeat);
 
   MqttInit();
 
-  SetupOTA();
+  OTA_setup();
 } // void setup
 
 //####################################################################
@@ -210,7 +199,7 @@ void loop() {
       ConfigureWifi();
     }
   }
-  server.handleClient();
+  WebServer_handle();
 
   MqttLoop();
 
@@ -234,7 +223,7 @@ void loop() {
     web_cmd = "";
   }
 
-  OTA_Handle();
+  OTA_handle();
 } // void loop
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -466,7 +455,7 @@ void cmd_save_config() {
       Serial.printf("config.serial: %08u = 0x%08x \n", config.serial_number, config.serial_number);
       cmd_generate_serials(config.serial_number);
     } else {
-      server.send ( 200, "text/plain", "Set new Serial not successful, not a hexadecimal number.");
+      WebServer_send(200, "text/plain", "Set new serial not successful, not a hexadecimal number.");
       return;
     }
   }
@@ -477,7 +466,7 @@ void cmd_save_config() {
     devcnt_handler(false);
   }
   WriteConfig();
-  server.send ( 200, "text/plain", "Configuration has been saved, system is restarting. Please refresh manually in about 30 seconds.." );
+  WebServer_send(200, "text/plain", "Configuration has been saved");
   cmd_restart();
 } // void cmd_save_config
 
@@ -485,7 +474,7 @@ void cmd_save_config() {
 // webUI restart function
 //####################################################################
 void cmd_restart() {
-  server.send ( 200, "text/plain", "System is restarting. Please refresh manually in about 30 seconds." );
+  WebServer_send(200, "text/plain", "System is restarting. Please refresh manually in about 30 seconds.");
   delay(500);
   wifi_disconnect_log = false;
   ESP.restart();
