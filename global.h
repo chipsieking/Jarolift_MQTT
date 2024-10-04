@@ -172,7 +172,7 @@ void ConfigureWifi() {
   WriteLog("[INFO] - WiFi connecting to", false);
   WriteLog(config.ssid, true);
   WiFi.mode(WIFI_STA);
-  WiFi.begin (config.ssid.c_str(), config.password.c_str());
+  WiFi.begin(config.ssid.c_str(), config.password.c_str());
   if (!config.dhcp) {
     WiFi.config(IPAddress(config.ip[0], config.ip[1], config.ip[2], config.ip[3] ),  IPAddress(config.gateway[0], config.gateway[1], config.gateway[2], config.gateway[3] ) , IPAddress(config.netmask[0], config.netmask[1], config.netmask[2], config.netmask[3] ));
   }
@@ -211,25 +211,25 @@ void WriteConfig() {
   EEPROM.write(158, config.mqtt_broker_addr[2]);
   EEPROM.write(159, config.mqtt_broker_addr[3]);
 
-  WriteStringToEEPROM(164, config.ssid);
-  WriteStringToEEPROM(196, config.password);
+  WriteStringToEEPROM(164, 32, config.ssid);
+  WriteStringToEEPROM(196, 64, config.password);
 
-  WriteStringToEEPROM(262, config.mqtt_broker_port);
-  WriteStringToEEPROM(270, config.master_msb_str);
-  WriteStringToEEPROM(330, config.master_lsb_str);
+  WriteStringToEEPROM(262, 5, config.mqtt_broker_port);
+  WriteStringToEEPROM(270, 10, config.master_msb_str);
+  WriteStringToEEPROM(330, 10, config.master_lsb_str);
   EEPROM.write(350, config.learn_mode);
   EEPROM.write(351, config.shade_support);
   EEPROM.write(352, config.shade_enable);
-  WriteStringToEEPROM(366, config.serial);
+  WriteStringToEEPROM(366, 8, config.serial);
 
-  WriteStringToEEPROM(375, config.mqtt_broker_client_id);
-  WriteStringToEEPROM(400, config.mqtt_broker_username);
-  WriteStringToEEPROM(450, config.mqtt_broker_password);
-  WriteStringToEEPROM(1300, config.mqtt_devicetopic);
+  WriteStringToEEPROM(375, 25, config.mqtt_broker_client_id);
+  WriteStringToEEPROM(400, 25, config.mqtt_broker_username);
+  WriteStringToEEPROM(450, 25, config.mqtt_broker_password);
+  WriteStringToEEPROM(1300, 20, config.mqtt_devicetopic);
 
   for (unsigned i = 0; i < MAX_CHANNELS; ++i) {
-    WriteStringToEEPROM(500 + i * 50, config.channel_name[i]);
-    WriteStringToEEPROM(525 + i * 50, String(config.shade_runtime[i]));
+    WriteStringToEEPROM(500 + i * 50, 25, config.channel_name[i]);
+    WriteStringToEEPROM(525 + i * 50,  6, String(config.shade_runtime[i]));
     EEPROM.write(531 + i * 50, config.flags[i]);
   }
 
@@ -240,7 +240,7 @@ void WriteConfig() {
 void WriteConfigShadeRuntime(unsigned channel) {
   // helper function for writing shade runtime without committing to EEPROM on each change
   if (channel < MAX_CHANNELS) {
-    WriteStringToEEPROM(525 + channel * 50, String(config.shade_runtime[channel]));
+    WriteStringToEEPROM(525 + channel * 50, 6, String(config.shade_runtime[channel]));
   }
 }
 
@@ -370,6 +370,8 @@ void InitializeConfigData() {
 
   // apply default config if saved configuration not yet exist
   if (!ReadConfig()) {
+    Serial.printf("set up default config\n");
+
     // DEFAULT CONFIG
     config.cfgVersion = 2;
     config.ssid = "MYSSID";

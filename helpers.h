@@ -27,22 +27,25 @@ inline boolean checkRange(String str) {
 }
 
 //####################################################################
-void WriteStringToEEPROM(unsigned addr, String str) {
+void WriteStringToEEPROM(unsigned addr, unsigned maxLen, String str) {
   char buf[str.length() + 1];
   str.toCharArray(buf, sizeof(buf));
-  for (unsigned i = 0; i < str.length(); ++i) {
-    // do not store trailing \0 in EEPROM
+  if (str.length() > maxLen) {
+    Serial.printf("[ERR] string '%s' len %d > max EEPROM len %d -> truncating\n", buf, sizeof(buf), maxLen);
+  }
+
+  // include trailing '\0' if string length is smaller than EEPROM field
+  unsigned len = std::min(maxLen, sizeof(buf));
+  for (unsigned i = 0; i < len; ++i) {
     EEPROM.write(addr + i, buf[i]);
   }
 }
 
 //####################################################################
 String ReadStringFromEEPROM(unsigned addr, unsigned maxLen) {
-  unsigned i = 0;
-  char chr;
   String str = "";
-  while (i < maxLen) {
-    chr = EEPROM.read(addr + i++);
+  for (unsigned i = 0; i < maxLen; i++) {
+    char chr = EEPROM.read(addr + i);
     if (chr == 0) break;
     str.concat(chr);
   }
